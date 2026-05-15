@@ -9,7 +9,20 @@
       "beschreibung": "Mittelwände + Rähmchen",
       "betrag": 100,
       "notiz": "Marc bei Frey"
+    },
+    {
+      "id": "d38ee152-4dbb-4333-af6c-e8b166b41fae",
+      "type": "ein",
+      "datum": "2026-05-15",
+      "ts": 1778873211726,
+      "produkt": "Honig Frühtracht (250g Glas)",
+      "einheit": "250g Glas",
+      "menge": 2,
+      "preis": 10,
+      "gesamt": 20,
+      "kanal": "Bekannte",
+      "notiz": ""
     }
   ],
-  "lastUpdated": "2026-05-15T19:15:50.493Z"
+  "lastUpdated": "2026-05-15T19:26:52.138Z"
 }
