@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Imkerei">
+<meta name="theme-color" content="#1E293B">
+<link rel="manifest" href="_App/manifest.json">
+<link rel="apple-touch-icon" href="_App/icon-180.png">
+<title>Imkerei Buchhaltung</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --amber:#D97706;--amber-soft:#FEF3C7;--amber-dark:#92400E;
+  --green:#065F46;--green-light:#D1FAE5;
+  --red:#991B1B;--red-light:#FEE2E2;
+  --charcoal:#1E293B;
+  --muted:#94A3B8;--bg:#F8FAFC;--card:#FFFFFF;--border:#E2E8F0;
+  --text:#0F172A;--text2:#475569;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);
+  padding-bottom:calc(90px + var(--safe-bot));
+  overscroll-behavior:none;
+}
+
+/* Header */
+.hdr{
+  background:var(--charcoal);
+  padding: calc(var(--safe-top) + 16px) 18px 0;
+  position:sticky;top:0;z-index:10;
+}
+.hdr-top{display:flex;align-items:center;justify-content:space-between}
+.hdr h1{color:#fff;font-size:17px;font-weight:600;letter-spacing:-.3px}
+.hdr-date{color:var(--muted);font-size:12px;margin-top:2px}
+.seg{
+  display:grid;grid-template-columns:1fr 1fr;
+  background:rgba(255,255,255,.1);border-radius:10px;
+  padding:3px;margin-top:11px;gap:2px;
+}
+.seg button{
+  padding:10px;border:none;background:none;
+  color:rgba(255,255,255,.5);font-size:14px;font-weight:500;
+  border-radius:8px;cursor:pointer;transition:all .2s;
+}
+.seg button.ein{background:#065F46;color:#fff}
+.seg button.aus{background:#991B1B;color:#fff}
+
+/* Saldo-Leiste */
+.saldo-bar{
+  display:grid;grid-template-columns:1fr 1fr 1fr;
+  gap:1px;background:rgba(255,255,255,.08);
+  border-radius:10px;margin-top:10px;margin-bottom:0;
+  overflow:hidden;
+}
+.saldo-cell{
+  padding:9px 6px;text-align:center;
+  background:rgba(255,255,255,.04);
+}
+.saldo-cell .sc-lbl{font-size:10px;color:rgba(255,255,255,.45);letter-spacing:.4px;text-transform:uppercase}
+.saldo-cell .sc-val{font-size:13px;font-weight:700;margin-top:2px}
+.sc-val.ein{color:#6EE7B7}
+.sc-val.aus{color:#FCA5A5}
+.sc-val.pos{color:#6EE7B7}
+.sc-val.neg{color:#FCA5A5}
+.sc-val.zero{color:rgba(255,255,255,.4)}
+
+/* Jahresfilter */
+.yr-bar{
+  display:flex;gap:6px;overflow-x:auto;padding:10px 18px;
+  background:var(--charcoal);
+  scrollbar-width:none;
+}
+.yr-bar::-webkit-scrollbar{display:none}
+.yr-chip{
+  flex-shrink:0;padding:4px 11px;border-radius:20px;
+  font-size:12px;font-weight:600;cursor:pointer;border:none;
+  background:rgba(255,255,255,.12);color:rgba(255,255,255,.6);
+  transition:all .15s;
+}
+.yr-chip.active{background:var(--amber);color:#fff}
+
+/* Export-Badge */
+.exp-btn{
+  background:var(--amber);color:#fff;border:none;border-radius:20px;
+  padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;
+  white-space:nowrap;display:none;
+}
+.exp-btn.show{display:block}
+
+/* Content */
+.content{padding:14px}
+
+/* Onboarding-Banner (iOS) */
+.onboard{
+  background:var(--charcoal);border-radius:14px;
+  padding:16px;margin-bottom:14px;
+}
+.onboard-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.onboard h2{color:#fff;font-size:14px;font-weight:600}
+.onboard-close{
+  background:rgba(255,255,255,.15);border:none;color:#fff;
+  width:26px;height:26px;border-radius:50%;font-size:16px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.step{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start}
+.step:last-child{margin-bottom:0}
+.sn{
+  width:22px;height:22px;background:var(--amber);color:#fff;
+  border-radius:50%;font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.step p{font-size:13px;color:rgba(255,255,255,.8);line-height:1.5}
+.step strong{color:#fff}
+
+/* Desktop connect */
+.conn-bar{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:12px 14px;margin-bottom:12px;
+  display:flex;align-items:center;gap:10px;
+}
+.conn-bar p{flex:1;font-size:13px;color:var(--text2);line-height:1.4}
+.conn-bar button{
+  background:var(--green);color:#fff;border:none;border-radius:8px;
+  padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;
+}
+.conn-status{
+  display:flex;align-items:center;gap:7px;
+  background:var(--green-light);border:1px solid #A7F3D0;border-radius:12px;
+  padding:10px 14px;margin-bottom:12px;font-size:13px;color:#065F46;font-weight:500;
+}
+.conn-status .dot-ok{width:8px;height:8px;background:#065F46;border-radius:50%;flex-shrink:0}
+.conn-status button{
+  margin-left:auto;background:none;border:1px solid #065F46;color:#065F46;
+  border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;
+}
+.conn-warn{
+  background:#FFF7ED;border:1px solid #FDE68A;border-radius:12px;
+  padding:10px 14px;margin-bottom:12px;font-size:12px;color:#92400E;line-height:1.5;
+}
+
+/* Formular */
+.card{
+  background:var(--card);border-radius:14px;border:1px solid var(--border);
+  overflow:hidden;margin-bottom:14px;
+}
+.clabel{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;padding:12px 16px 0}
+.row{
+  padding:11px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;min-height:52px;
+}
+.row:last-child{border-bottom:none}
+.row label{font-size:14px;color:var(--text2);min-width:92px;flex-shrink:0}
+.row input,.row select,.row textarea{
+  flex:1;border:none;background:none;font-size:16px;color:var(--text);
+  text-align:right;outline:none;font-family:inherit;
+  -webkit-appearance:none;appearance:none;
+}
+.row select{cursor:pointer}
+.row textarea{text-align:left;resize:none;height:42px;padding-top:3px}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+.row.total{background:var(--amber-soft)}
+.total-val{font-size:18px;font-weight:700;color:var(--amber-dark);flex:1;text-align:right}
+
+/* Footer */
+.footer{
+  position:fixed;bottom:0;left:0;right:0;
+  padding:10px 16px calc(12px + var(--safe-bot));
+  background:var(--bg);border-top:1px solid var(--border);
+}
+.save{
+  width:100%;padding:16px;border:none;border-radius:14px;
+  font-size:16px;font-weight:600;cursor:pointer;
+  transition:transform .1s,opacity .15s;letter-spacing:-.2px;
+}
+.save:active{transform:scale(.98)}
+.save:disabled{opacity:.4}
+.save.ein{background:var(--green);color:#fff}
+.save.aus{background:var(--red);color:#fff}
+
+/* Toast */
+.toast{
+  position:fixed;top:calc(var(--safe-top) + 72px);left:50%;
+  transform:translateX(-50%);background:var(--charcoal);color:#fff;
+  padding:9px 20px;border-radius:30px;font-size:14px;font-weight:500;
+  opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;z-index:200;
+}
+.toast.on{opacity:1}
+
+/* Hist-Header */
+.hist-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.slabel{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.hist-count{font-size:11px;color:var(--muted)}
+
+/* Historie Einträge */
+.hi{
+  background:var(--card);border-radius:10px;border:1px solid var(--border);
+  padding:11px 13px;margin-bottom:7px;
+  display:flex;align-items:center;gap:11px;
+}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot.ein{background:var(--green)}.dot.aus{background:var(--red)}
+.hinfo{flex:1;min-width:0}
+.hmain{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hsub{font-size:12px;color:var(--muted);margin-top:1px}
+.hamt{font-size:14px;font-weight:600;flex-shrink:0}
+.hamt.ein{color:var(--green)}.hamt.aus{color:var(--red)}
+
+/* Delete-Button */
+.del-btn{
+  background:none;border:none;color:var(--muted);font-size:16px;
+  cursor:pointer;padding:4px 6px;margin-left:2px;border-radius:6px;
+  flex-shrink:0;transition:all .15s;line-height:1;
+}
+.del-btn:hover,.del-btn.confirm{background:var(--red-light);color:var(--red)}
+.del-btn.confirm{font-weight:700;font-size:13px}
+
+.hi.exported{opacity:.5}
+.hi.exported .hmain{text-decoration:line-through;text-decoration-color:var(--muted)}
+.exp-badge{font-size:10px;color:var(--muted);margin-left:4px}
+.empty{text-align:center;padding:24px;color:var(--muted);font-size:14px}
+.off{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top">
+    <h1>🍯 Imkerei</h1>
+    <button class="exp-btn" id="exp-btn" onclick="exportEntries()">Exportieren</button>
+  </div>
+  <div class="hdr-date" id="hdr-date"></div>
+  <div class="seg">
+    <button id="btn-ein" class="ein" onclick="setMode('ein')">+ Einnahme</button>
+    <button id="btn-aus" onclick="setMode('aus')">+ Ausgabe</button>
+  </div>
+
+  <!-- Saldo-Leiste -->
+  <div class="saldo-bar">
+    <div class="saldo-cell">
+      <div class="sc-lbl">Einnahmen</div>
+      <div class="sc-val ein" id="s-ein">—</div>
+    </div>
+    <div class="saldo-cell">
+      <div class="sc-lbl">Ausgaben</div>
+      <div class="sc-val aus" id="s-aus">—</div>
+    </div>
+    <div class="saldo-cell">
+      <div class="sc-lbl">Saldo</div>
+      <div class="sc-val zero" id="s-sal">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- Jahres-Chips -->
+<div class="yr-bar" id="yr-bar"></div>
+
+<div class="content">
+
+  <!-- iOS: Zum Home-Bildschirm hinzufügen -->
+  <div class="onboard off" id="onboard">
+    <div class="onboard-top">
+      <h2>App auf dem Home-Bildschirm installieren</h2>
+      <button class="onboard-close" onclick="closeOnboard()">✕</button>
+    </div>
+    <div class="step"><div class="sn">1</div><p>Tippe unten auf <strong>Teilen</strong> <span style="font-size:15px">⎙</span></p></div>
+    <div class="step"><div class="sn">2</div><p>Wähle <strong>„Zum Home-Bildschirm"</strong></p></div>
+    <div class="step"><div class="sn">3</div><p>Tippe <strong>„Hinzufügen"</strong> — fertig.</p></div>
+  </div>
+
+  <!-- iOS: Export-Anleitung -->
+  <div class="onboard off" id="export-guide" style="background:#064E3B">
+    <div class="onboard-top">
+      <h2>Einträge nach OneDrive exportieren</h2>
+      <button class="onboard-close" onclick="closeExportGuide()">✕</button>
+    </div>
+    <div class="step"><div class="sn">1</div><p>Tippe oben auf <strong>„Exportieren"</strong></p></div>
+    <div class="step"><div class="sn">2</div><p>Wähle <strong>„In Dateien sichern"</strong> → OneDrive → <strong>01_Buchhaltung</strong></p></div>
+    <div class="step"><div class="sn">3</div><p>Am Mac <strong>Importieren.command</strong> doppelklicken</p></div>
+  </div>
+
+  <!-- Desktop: Ordner verbinden -->
+  <div class="conn-bar off" id="conn-bar">
+    <p>📁 Ordner verbinden — danach schreibt die App direkt nach OneDrive.</p>
+    <button onclick="connectFolder()">Verbinden</button>
+  </div>
+
+  <!-- Desktop: Ordner verbunden (Status) -->
+  <div class="conn-status off" id="conn-status">
+    <div class="dot-ok"></div>
+    <span id="conn-name">Ordner verbunden</span>
+    <button onclick="connectFolder()">Wechseln</button>
+  </div>
+
+  <!-- Desktop: file:// Warnung -->
+  <div class="conn-warn off" id="conn-warn">
+    ⚠️ <strong>Ordner-Verbindung nicht verfügbar:</strong> Die App läuft lokal (file://). Öffne sie über einen Webserver oder nutze den iOS-Export. Einträge werden lokal gespeichert.
+  </div>
+
+  <!-- Formular -->
+  <div class="card">
+    <div class="clabel" id="clabel" style="color:var(--green)">Einnahme erfassen</div>
+    <div class="row"><label>Datum</label><input type="date" id="f-datum"></div>
+
+    <div id="ein-fields">
+      <div class="row">
+        <label>Produkt</label>
+        <select id="f-prod" onchange="onProdChange()">
+          <option value="">— wählen —</option>
+          <option>Honig Frühtracht</option><option>Honig Sommertracht</option>
+          <option>Honig Waldhonig</option><option>Wachs</option>
+          <option>Ableger</option><option>Material</option><option>Sonstiges</option>
+        </select>
+      </div>
+      <div class="row off" id="row-einheit">
+        <label>Einheit</label>
+        <select id="f-einheit" onchange="onEinheitChange()"></select>
+      </div>
+      <div class="row" id="row-menge">
+        <label>Menge</label>
+        <input type="number" id="f-menge" placeholder="0" min="0" step="1" inputmode="decimal" oninput="calc()">
+        <span style="color:var(--muted);font-size:13px;flex-shrink:0" id="f-unit"></span>
+      </div>
+      <div class="row" id="row-preis">
+        <label id="lbl-preis">Preis / Einheit</label>
+        <input type="number" id="f-preis" placeholder="0.00" min="0" step="0.5" inputmode="decimal" oninput="calc()">
+        <span style="color:var(--muted);font-size:13px;flex-shrink:0">CHF</span>
+      </div>
+      <div class="row total">
+        <label style="color:var(--amber-dark);font-weight:600">Gesamt</label>
+        <span class="total-val" id="f-total">— CHF</span>
+      </div>
+      <div class="row">
+        <label>Kanal</label>
+        <select id="f-kanal">
+          <option value="">— wählen —</option>
+          <option>Direktverkauf</option><option>Markt</option>
+          <option>Bekannte</option><option>Online</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="aus-fields" class="off">
+      <div class="row">
+        <label>Kategorie</label>
+        <select id="f-kat">
+          <option value="">— wählen —</option>
+          <option>Futtermittel</option><option>Behandlung</option>
+          <option>Ausrüstung</option><option>Verpackung</option>
+          <option>Fahrt</option><option>Sonstiges</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>Beschreibung</label>
+        <input type="text" id="f-desc" placeholder="z.B. Oxalsäure 1 kg" style="text-align:left" autocorrect="off" autocomplete="off">
+      </div>
+      <div class="row total">
+        <label style="color:var(--amber-dark);font-weight:600">Betrag</label>
+        <input type="number" id="f-betrag" placeholder="0.00" min="0" step="0.5" inputmode="decimal"
+          style="font-size:16px;font-weight:700;color:var(--amber-dark);text-align:right">
+        <span style="color:var(--amber-dark);font-size:13px;font-weight:600;flex-shrink:0;margin-left:4px">CHF</span>
+      </div>
+    </div>
+
+    <div class="row"><label>Notiz</label><textarea id="f-notiz" placeholder="optional"></textarea></div>
+  </div>
+
+  <div class="hist-hdr">
+    <div class="slabel">Einträge</div>
+    <div class="hist-count" id="hist-count"></div>
+  </div>
+  <div id="hist"></div>
+
+</div>
+
+<div class="footer">
+  <button class="save ein" id="save-btn" onclick="saveEntry()">Einnahme speichern</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Konfiguration ─────────────────────────────────────────────────────
+const PRODUKT_CONFIG = {
+  'Honig Frühtracht':   { type: 'honig' },
+  'Honig Sommertracht': { type: 'honig' },
+  'Honig Waldhonig':    { type: 'honig' },
+  'Wachs':     { type: 'menge', unit: 'kg',  preis: 8 },
+  'Ableger':   { type: 'menge', unit: 'Stk', preis: 50 },
+  'Material':  { type: 'fixpreis' },
+  'Sonstiges': { type: 'fixpreis' },
+};
+const HONIG_EINHEITEN = [
+  { label: '250g Glas', unit: 'Gläser', preis: 10 },
+  { label: '500g Glas', unit: 'Gläser', preis: 15 },
+  { label: 'Kübel',     unit: 'kg',     preis: 22 },
+];
+const LS_KEY    = 'imk_v2';
+const LS_OB     = 'imk_ob_done';
+const LS_EG     = 'imk_eg_done';
+const FILE_NAME = 'pending_eintraege.json';
+
+const isIOS       = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const isStandalone= window.navigator.standalone === true
+                 || window.matchMedia('(display-mode: standalone)').matches;
+const isFileProto = location.protocol === 'file:';
+const hasFSA      = !isIOS && !isFileProto && typeof window.showDirectoryPicker === 'function';
+
+let mode = 'ein', dirHandle = null, activeYear = String(new Date().getFullYear());
+let confirmDeleteId = null, confirmTimer = null;
+
+// ── Init ──────────────────────────────────────────────────────────────
+document.getElementById('f-datum').value = today();
+document.getElementById('hdr-date').textContent =
+  new Date().toLocaleDateString('de-CH',{weekday:'long',day:'numeric',month:'long'});
+
+if ('serviceWorker' in navigator && location.protocol === 'https:')
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// Plattform-Setup
+if (isIOS) {
+  document.getElementById('exp-btn').classList.add('show');
+  if (!isStandalone && !localStorage.getItem(LS_OB))
+    document.getElementById('onboard').classList.remove('off');
+  if (!localStorage.getItem(LS_EG))
+    document.getElementById('export-guide').classList.remove('off');
+} else if (isFileProto) {
+  document.getElementById('conn-warn').classList.remove('off');
+  document.getElementById('exp-btn').classList.add('show');
+} else if (hasFSA) {
+  (async function() {
+    try {
+      const h = await idbGet('dir');
+      if (h) {
+        const p = await h.queryPermission({mode:'readwrite'});
+        if (p === 'granted') { dirHandle = h; showConnected(h.name); await flushToFile(true); }
+        else showConnBar(true);
+      } else { showConnBar(false); }
+    } catch { showConnBar(false); }
+  })();
+} else {
+  document.getElementById('exp-btn').classList.add('show');
+}
+
+function showConnBar(hadBefore) {
+  const bar = document.getElementById('conn-bar');
+  bar.classList.remove('off');
+  if (hadBefore) {
+    bar.querySelector('p').textContent = '🔄 Berechtigung abgelaufen — Ordner neu verbinden.';
+    bar.querySelector('button').textContent = 'Neu verbinden';
+  }
+}
+function showConnected(name) {
+  document.getElementById('conn-bar').classList.add('off');
+  document.getElementById('conn-status').classList.remove('off');
+  document.getElementById('conn-name').textContent = 'Verbunden: ' + name;
+}
+
+buildYearChips();
+updateSaldo();
+updateExpBtn();
+renderHist();
+
+// ── Jahres-Chips ──────────────────────────────────────────────────────
+function buildYearChips() {
+  const entries = getLocal();
+  const years = [...new Set(entries.map(e=>e.datum?e.datum.slice(0,4):null).filter(Boolean))].sort().reverse();
+  const curYear = String(new Date().getFullYear());
+  if (!years.includes(curYear)) years.unshift(curYear);
+  const bar = document.getElementById('yr-bar');
+
+  const allChip = document.createElement('button');
+  allChip.className = 'yr-chip' + (activeYear==='alle'?' active':'');
+  allChip.textContent = 'Alle';
+  allChip.onclick = ()=>{ activeYear='alle'; refreshAll(); };
+  bar.appendChild(allChip);
+
+  years.forEach(yr=>{
+    const c = document.createElement('button');
+    c.className = 'yr-chip' + (activeYear===yr?' active':'');
+    c.textContent = yr;
+    c.onclick = ()=>{ activeYear=yr; refreshAll(); };
+    bar.appendChild(c);
+  });
+}
+
+function refreshYearChips() {
+  document.getElementById('yr-bar').innerHTML = '';
+  buildYearChips();
+}
+
+function refreshAll() { refreshYearChips(); updateSaldo(); renderHist(); }
+
+// ── Saldo-Leiste ──────────────────────────────────────────────────────
+function updateSaldo() {
+  const all = getLocal();
+  const f = activeYear==='alle' ? all : all.filter(e=>e.datum&&e.datum.startsWith(activeYear));
+  const ein = f.filter(e=>e.type==='ein').reduce((s,e)=>s+(e.gesamt||0),0);
+  const aus = f.filter(e=>e.type==='aus').reduce((s,e)=>s+(e.betrag||0),0);
+  const sal = ein - aus;
+  document.getElementById('s-ein').textContent = fmtCHFshort(ein);
+  document.getElementById('s-aus').textContent = fmtCHFshort(aus);
+  const el = document.getElementById('s-sal');
+  el.textContent = fmtCHFshort(sal);
+  el.className = 'sc-val ' + (sal>0?'pos':sal<0?'neg':'zero');
+}
+
+// ── Onboarding ────────────────────────────────────────────────────────
+function closeOnboard()     { localStorage.setItem(LS_OB,'1'); document.getElementById('onboard').classList.add('off'); }
+function closeExportGuide() { localStorage.setItem(LS_EG,'1'); document.getElementById('export-guide').classList.add('off'); }
+
+// ── Formular ──────────────────────────────────────────────────────────
+function onProdChange() {
+  const prod = document.getElementById('f-prod').value;
+  const cfg  = PRODUKT_CONFIG[prod]||{type:'fixpreis'};
+  const rowE = document.getElementById('row-einheit');
+  const rowM = document.getElementById('row-menge');
+  const lblP = document.getElementById('lbl-preis');
+  if (cfg.type==='honig') {
+    rowE.classList.remove('off'); rowM.classList.remove('off');
+    lblP.textContent='Preis / Einheit';
+    document.getElementById('f-einheit').innerHTML = HONIG_EINHEITEN.map(h=>`<option value="${h.label}">${h.label}</option>`).join('');
+    document.getElementById('f-menge').step='1';
+    onEinheitChange();
+  } else if (cfg.type==='menge') {
+    rowE.classList.add('off'); rowM.classList.remove('off');
+    lblP.textContent='Preis / Einheit';
+    document.getElementById('f-unit').textContent=cfg.unit;
+    document.getElementById('f-preis').value=cfg.preis||'';
+    document.getElementById('f-menge').step=cfg.unit==='kg'?'0.1':'1';
+    calc();
+  } else {
+    rowE.classList.add('off'); rowM.classList.add('off');
+    lblP.textContent='Betrag';
+    document.getElementById('f-preis').value='';
+    document.getElementById('f-total').textContent='— CHF';
+  }
+}
+
+function onEinheitChange() {
+  const h = HONIG_EINHEITEN.find(x=>x.label===document.getElementById('f-einheit').value);
+  if (h) {
+    document.getElementById('f-preis').value=h.preis;
+    document.getElementById('f-unit').textContent=h.unit;
+    document.getElementById('f-menge').step=h.unit==='kg'?'0.1':'1';
+  }
+  calc();
+}
+
+function calc() {
+  const prod = document.getElementById('f-prod').value;
+  const cfg  = PRODUKT_CONFIG[prod]||{type:'fixpreis'};
+  const p    = parseFloat(document.getElementById('f-preis').value)||0;
+  if (cfg.type==='fixpreis') {
+    document.getElementById('f-total').textContent = p?fmtCHF(p):'— CHF';
+  } else {
+    const m = parseFloat(document.getElementById('f-menge').value)||0;
+    document.getElementById('f-total').textContent = (m&&p)?fmtCHF(m*p):'— CHF';
+  }
+}
+
+function setMode(m) {
+  mode=m;
+  document.getElementById('btn-ein').className = m==='ein'?'ein':'';
+  document.getElementById('btn-aus').className = m==='aus'?'aus':'';
+  document.getElementById('ein-fields').classList.toggle('off',m!=='ein');
+  document.getElementById('aus-fields').classList.toggle('off',m!=='aus');
+  document.getElementById('clabel').textContent = m==='ein'?'Einnahme erfassen':'Ausgabe erfassen';
+  document.getElementById('clabel').style.color = m==='ein'?'var(--green)':'var(--red)';
+  const btn=document.getElementById('save-btn');
+  btn.className='save '+m;
+  btn.textContent=m==='ein'?'Einnahme speichern':'Ausgabe speichern';
+}
+
+// ── Speichern ─────────────────────────────────────────────────────────
+async function saveEntry() {
+  const datum=document.getElementById('f-datum').value;
+  if(!datum){toast('Bitte Datum eingeben');return;}
+  let entry={id:uuid(),type:mode,datum,ts:Date.now()};
+
+  if(mode==='ein'){
+    const produkt=document.getElementById('f-prod').value;
+    const preis=parseFloat(document.getElementById('f-preis').value)||0;
+    const cfg=PRODUKT_CONFIG[produkt]||{type:'fixpreis'};
+    if(!produkt){toast('Bitte Produkt wählen');return;}
+    if(!preis){toast('Bitte Preis / Betrag eingeben');return;}
+    let menge=1,gesamt=preis;
+    if(cfg.type==='honig'){
+      const einheit=document.getElementById('f-einheit').value;
+      menge=parseFloat(document.getElementById('f-menge').value)||0;
+      if(!menge){toast('Bitte Menge eingeben');return;}
+      gesamt=+(menge*preis).toFixed(2);
+      Object.assign(entry,{produkt:`${produkt} (${einheit})`,einheit,menge,preis,gesamt,
+        kanal:document.getElementById('f-kanal').value,notiz:document.getElementById('f-notiz').value});
+    } else if(cfg.type==='menge'){
+      menge=parseFloat(document.getElementById('f-menge').value)||0;
+      if(!menge){toast('Bitte Menge eingeben');return;}
+      gesamt=+(menge*preis).toFixed(2);
+      Object.assign(entry,{produkt,menge,preis,gesamt,
+        kanal:document.getElementById('f-kanal').value,notiz:document.getElementById('f-notiz').value});
+    } else {
+      Object.assign(entry,{produkt,menge:1,preis,gesamt:preis,
+        kanal:document.getElementById('f-kanal').value,notiz:document.getElementById('f-notiz').value});
+    }
+  } else {
+    const kategorie=document.getElementById('f-kat').value;
+    const betrag=parseFloat(document.getElementById('f-betrag').value)||0;
+    if(!kategorie){toast('Bitte Kategorie wählen');return;}
+    if(!betrag){toast('Bitte Betrag eingeben');return;}
+    Object.assign(entry,{kategorie,beschreibung:document.getElementById('f-desc').value,
+      betrag,notiz:document.getElementById('f-notiz').value});
+  }
+
+  const btn=document.getElementById('save-btn');
+  btn.disabled=true;
+  addLocal(entry);
+
+  if(hasFSA&&dirHandle){
+    const ok=await flushToFile(true);
+    toast(ok?'In OneDrive gespeichert ✓':'Lokal gespeichert ✓');
+  } else {
+    toast('Gespeichert ✓');
+  }
+  resetForm(); refreshAll(); updateExpBtn();
+  btn.disabled=false;
+}
+
+// ── Eintrag löschen ───────────────────────────────────────────────────
+function deleteEntry(id,btnEl) {
+  if(confirmDeleteId===id){
+    clearTimeout(confirmTimer);
+    confirmDeleteId=null;
+    const entries=getLocal().filter(e=>e.id!==id);
+    localStorage.setItem(LS_KEY,JSON.stringify(entries));
+    toast('Eintrag gelöscht');
+    refreshAll(); updateExpBtn();
+  } else {
+    if(confirmDeleteId){
+      document.querySelectorAll('.del-btn.confirm').forEach(b=>{b.classList.remove('confirm');b.textContent='✕';});
+    }
+    confirmDeleteId=id;
+    btnEl.classList.add('confirm');
+    btnEl.textContent='✓?';
+    clearTimeout(confirmTimer);
+    confirmTimer=setTimeout(()=>{
+      confirmDeleteId=null;
+      if(btnEl.isConnected){btnEl.classList.remove('confirm');btnEl.textContent='✕';}
+    },3000);
+  }
+}
+
+// ── Desktop: Ordner verbinden ─────────────────────────────────────────
+async function connectFolder() {
+  try {
+    dirHandle=await window.showDirectoryPicker({mode:'readwrite',id:'imkerei'});
+    await idbSet('dir',dirHandle);
+    showConnected(dirHandle.name);
+    await flushToFile(true);
+    toast('Ordner verbunden ✓');
+  } catch(e){ if(e.name!=='AbortError') toast('Verbindung abgebrochen'); }
+}
+
+async function flushToFile(silent) {
+  if(!dirHandle) return false;
+  try {
+    const perm=await dirHandle.requestPermission({mode:'readwrite'});
+    if(perm!=='granted') return false;
+    const pending=getPending();
+    if(!pending.length) return true;
+    let existing=[];
+    try {
+      const fh=await dirHandle.getFileHandle(FILE_NAME,{create:false});
+      existing=JSON.parse(await(await fh.getFile()).text());
+    } catch{}
+    const ids=new Set(existing.map(e=>e.id));
+    const toAdd=pending.filter(e=>!ids.has(e.id));
+    if(!toAdd.length){markExported(pending.map(e=>e.id));return true;}
+    const fh=await dirHandle.getFileHandle(FILE_NAME,{create:true});
+    const w=await fh.createWritable();
+    await w.write(JSON.stringify([...existing,...toAdd],null,2));
+    await w.close();
+    markExported(toAdd.map(e=>e.id));
+    if(!silent) toast(`${toAdd.length} Einträge gespeichert ✓`);
+    return true;
+  } catch { return false; }
+}
+
+// ── iOS Export ────────────────────────────────────────────────────────
+async function exportEntries() {
+  const pending=getPending();
+  if(!pending.length){toast('Keine neuen Einträge');return;}
+  const ts=new Date().toISOString().replace(/[:.]/g,'-').slice(0,16);
+  const name=`pending_${ts}.json`;
+  const blob=new Blob([JSON.stringify(pending,null,2)],{type:'application/json'});
+  const file=new File([blob],name,{type:'application/json'});
+  try {
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:'Imkerei Einträge'});
+      markExported(pending.map(e=>e.id)); refreshAll(); updateExpBtn();
+      toast('Exportiert ✓ — in OneDrive/01_Buchhaltung sichern');
+    } else {
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);a.download=name;a.click();
+      markExported(pending.map(e=>e.id)); refreshAll(); updateExpBtn();
+      toast('Datei heruntergeladen');
+    }
+  } catch(e){if(e.name!=='AbortError') toast('Export fehlgeschlagen');}
+}
+
+// ── Historie ──────────────────────────────────────────────────────────
+function renderHist() {
+  const all=getLocal();
+  const filtered=activeYear==='alle'?all:all.filter(e=>e.datum&&e.datum.startsWith(activeYear));
+  const entries=[...filtered].sort((a,b)=>b.ts-a.ts);
+  const el=document.getElementById('hist');
+  const countEl=document.getElementById('hist-count');
+
+  if(!entries.length){
+    el.innerHTML='<div class="empty">Keine Einträge'+(activeYear!=='alle'?' für '+activeYear:'')+'</div>';
+    countEl.textContent='';
+    return;
+  }
+  countEl.textContent=`${entries.length} Eintr.`;
+
+  el.innerHTML=entries.map(e=>{
+    const isEin=e.type==='ein';
+    const lbl=isEin?(e.produkt||'Einnahme'):(e.beschreibung||e.kategorie||'Ausgabe');
+    const sub=isEin?[e.kanal,fmtDate(e.datum)].filter(Boolean).join(' · ')
+                   :[e.kategorie,fmtDate(e.datum)].filter(Boolean).join(' · ');
+    const amt=isEin?fmtCHF(e.gesamt):fmtCHF(e.betrag);
+    const expCls=e._exported?' exported':'';
+    const expMark=e._exported?'<span class="exp-badge">✓ exportiert</span>':'';
+    return `<div class="hi${expCls}">
+      <div class="dot ${e.type}"></div>
+      <div class="hinfo">
+        <div class="hmain">${esc(lbl)}${expMark}</div>
+        <div class="hsub">${esc(sub)}</div>
+      </div>
+      <span class="hamt ${e.type}">${isEin?'+':'-'}${amt}</span>
+      <button class="del-btn" onclick="deleteEntry('${e.id}',this)" title="Löschen">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function updateExpBtn() {
+  const n=getPending().length;
+  const b=document.getElementById('exp-btn');
+  if(b.classList.contains('show')) b.textContent=n>0?`Exportieren (${n})`:'Exportiert ✓';
+}
+
+// ── Hilfsfunktionen ──────────────────────────────────────────────────
+function today()        { return new Date().toISOString().split('T')[0]; }
+function fmtDate(s)     { if(!s)return''; const[y,m,d]=s.split('-'); return`${d}.${m}.${y}`; }
+function fmtCHF(n)      { return Number(n||0).toFixed(2).replace('.',',')+' CHF'; }
+function fmtCHFshort(n) { const v=Number(n||0); return(v>=1000?(v/1000).toFixed(1)+'k':v.toFixed(0))+' CHF'; }
+function esc(s)         { return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function uuid()         { return([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)); }
+
+function resetForm() {
+  document.getElementById('f-datum').value=today();
+  ['f-prod','f-menge','f-preis','f-kanal','f-kat','f-desc','f-betrag','f-notiz']
+    .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('f-total').textContent='— CHF';
+  document.getElementById('f-unit').textContent='';
+  document.getElementById('lbl-preis').textContent='Preis / Einheit';
+  document.getElementById('row-einheit').classList.add('off');
+  document.getElementById('row-menge').classList.remove('off');
+}
+
+function toast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'),2600);
+}
+
+function getLocal()    { try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]');}catch{return[];} }
+function getPending()  { return getLocal().filter(e=>!e._exported); }
+function addLocal(e)   { const a=getLocal(); a.push(e); localStorage.setItem(LS_KEY,JSON.stringify(a)); }
+function markExported(ids) {
+  const idSet=new Set(ids);
+  const a=getLocal().map(e=>idSet.has(e.id)?{...e,_exported:true}:e);
+  localStorage.setItem(LS_KEY,JSON.stringify(a));
+}
+function clearLocal()  { localStorage.removeItem(LS_KEY); }
+
+function idbOpen() {
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open('imkerei',1);
+    r.onupgradeneeded=e=>e.target.result.createObjectStore('kv');
+    r.onsuccess=e=>res(e.target.result); r.onerror=rej;
+  });
+}
+async function idbGet(k) {
+  const db=await idbOpen();
+  return new Promise((res,rej)=>{const r=db.transaction('kv').objectStore('kv').get(k);r.onsuccess=()=>res(r.result);r.onerror=rej;});
+}
+async function idbSet(k,v) {
+  const db=await idbOpen();
+  return new Promise((res,rej)=>{const r=db.transaction('kv','readwrite').objectStore('kv').put(v,k);r.onsuccess=res;r.onerror=rej;});
+}
+</script>
+</body>
+</html>
