@@ -22,7 +22,20 @@
       "gesamt": 20,
       "kanal": "Bekannte",
       "notiz": ""
+    },
+    {
+      "id": "6854c86e-9367-41b1-ac86-0c2b0fc9cee9",
+      "type": "ein",
+      "datum": "2026-05-15",
+      "ts": 1778873372610,
+      "produkt": "Honig Frühtracht (250g Glas)",
+      "einheit": "250g Glas",
+      "menge": 2,
+      "preis": 8,
+      "gesamt": 16,
+      "kanal": "Bekannte",
+      "notiz": ""
     }
   ],
-  "lastUpdated": "2026-05-15T19:26:52.138Z"
+  "lastUpdated": "2026-05-15T19:29:33.004Z"
 }
