@@ -45,7 +45,17 @@
       "beschreibung": "Material",
       "betrag": 71.5,
       "notiz": "Frei"
+    },
+    {
+      "id": "89d5f387-0f29-412f-924d-cc58ce744b89",
+      "type": "aus",
+      "datum": "2026-04-22",
+      "ts": 1778877189524,
+      "kategorie": "Ausrüstung",
+      "beschreibung": "Mittelwände",
+      "betrag": 79,
+      "notiz": ""
     }
   ],
-  "lastUpdated": "2026-05-15T20:24:29.898Z"
+  "lastUpdated": "2026-05-15T20:33:10.076Z"
 }
