@@ -35,7 +35,17 @@
       "gesamt": 16,
       "kanal": "Bekannte",
       "notiz": ""
+    },
+    {
+      "id": "5b677571-12aa-4081-8e36-d059efbcc30d",
+      "type": "aus",
+      "datum": "2026-04-10",
+      "ts": 1778876669098,
+      "kategorie": "Ausrüstung",
+      "beschreibung": "Material",
+      "betrag": 71.5,
+      "notiz": "Frei"
     }
   ],
-  "lastUpdated": "2026-05-15T19:29:33.004Z"
+  "lastUpdated": "2026-05-15T20:24:29.898Z"
 }
