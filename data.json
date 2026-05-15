@@ -1,1 +1,15 @@
-{"entries":[],"lastUpdated":"2026-05-15T00:00:00Z"}
+{
+  "entries": [
+    {
+      "id": "bb1c14a5-e762-4530-b0cc-c986a76b33af",
+      "type": "aus",
+      "datum": "2026-05-15",
+      "ts": 1778872550046,
+      "kategorie": "Sonstiges",
+      "beschreibung": "Mittelwände + Rähmchen",
+      "betrag": 100,
+      "notiz": "Marc bei Frey"
+    }
+  ],
+  "lastUpdated": "2026-05-15T19:15:50.493Z"
+}
