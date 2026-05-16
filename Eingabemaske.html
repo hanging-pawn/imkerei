@@ -144,17 +144,19 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="step"><div class="sn">3</div><p>Tippe <strong>„Hinzufügen"</strong> — fertig.</p></div>
   </div>
 
-  <!-- GitHub Token Setup (einmalig) -->
-  <div class="card off" id="token-card" style="border-color:#FCD34D">
-    <div class="clabel" style="color:var(--amber)">GitHub-Token einrichten</div>
+  <!-- Setup: Token & Kürzel -->
+  <div class="card off" id="setup-card" style="border-color:#FCD34D">
+    <div class="clabel" style="color:var(--amber)">Einrichtung</div>
     <div class="row">
-      <label style="min-width:0;font-size:13px;color:var(--text2);flex:1">Füge deinen GitHub Personal Access Token ein, um die Sync-Funktion zu aktivieren.</label>
+      <label>Kürzel</label>
+      <input type="text" id="s-user" placeholder="z.B. GL" maxlength="5" autocorrect="off" autocapitalize="characters" style="text-align:right;font-size:16px;text-transform:uppercase">
     </div>
     <div class="row">
-      <input type="password" id="token-input" placeholder="github_pat_…" style="text-align:left;font-size:13px;font-family:monospace" autocomplete="off" autocorrect="off" autocapitalize="none">
+      <label style="font-size:13px;min-width:92px">GitHub-Token</label>
+      <input type="password" id="s-token" placeholder="github_pat_…" autocomplete="off" autocorrect="off" autocapitalize="none" style="font-size:14px">
     </div>
-    <div class="row" style="min-height:44px">
-      <button onclick="saveToken()" style="flex:1;background:var(--amber);color:#fff;border:none;border-radius:10px;padding:10px;font-size:14px;font-weight:600;cursor:pointer">Speichern & Verbinden</button>
+    <div class="row" style="border-bottom:none;padding:10px 16px">
+      <button onclick="saveSetup()" style="flex:1;padding:12px;background:var(--amber);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">Speichern</button>
     </div>
   </div>
 
@@ -240,11 +242,12 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 // ── GitHub-Konfiguration ──────────────────────────────────────────────
 const GH_USER  = 'hanging-pawn';
 const GH_REPO  = 'imkerei';
-const GH_FILE  = 'data.json';
-const GH_API   = `https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`;
 const LS_TOKEN = 'imk_gh_token';
+const LS_USER  = 'imk_user';
 function getToken() { return localStorage.getItem(LS_TOKEN)||''; }
-function setToken(t){ localStorage.setItem(LS_TOKEN, t.trim()); }
+function getUser()  { return (localStorage.getItem(LS_USER)||'').toUpperCase(); }
+function ghFile()   { const u=localStorage.getItem(LS_USER)||''; return u?`data_${u.toLowerCase()}.json`:'data.json'; }
+function ghApi()    { return `https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${ghFile()}`; }
 
 // ── Konfiguration ─────────────────────────────────────────────────────
 const PRODUKT_CONFIG = {
@@ -281,15 +284,11 @@ if ('serviceWorker' in navigator && location.protocol==='https:')
 if (isIOS && !isStandalone && !localStorage.getItem(LS_OB))
   document.getElementById('onboard').classList.remove('off');
 
-// Token prüfen
-if (!getToken()) {
-  document.getElementById('token-card').classList.remove('off');
-  setSyncBadge('err','⚠ Token fehlt');
-} else {
-  syncPending();
-}
-
 buildYearChips(); updateSaldo(); renderHist(); updateSyncBadge();
+
+// Ausstehende Einträge beim Start synchronisieren
+syncPending();
+checkSetup();
 
 // ── GitHub Sync ───────────────────────────────────────────────────────
 function b64enc(str){ return btoa(unescape(encodeURIComponent(str))); }
@@ -316,16 +315,19 @@ async function syncPending() {
 }
 
 async function pushToGitHub(entries) {
+  const token = getToken();
+  if (!token) return false;
+  const api = ghApi();
   const headers = {
-    'Authorization': `token ${getToken()}`,
+    'Authorization': `token ${token}`,
     'Accept': 'application/vnd.github.v3+json',
     'Content-Type': 'application/json',
   };
-  // Aktuelle data.json holen
+  // Aktuelle Datei holen
   let sha = null;
   let existing = {entries:[]};
   try {
-    const r = await fetch(GH_API, {headers});
+    const r = await fetch(api, {headers});
     if (r.ok) {
       const d = await r.json();
       sha = d.sha;
@@ -342,12 +344,12 @@ async function pushToGitHub(entries) {
   existing.lastUpdated = new Date().toISOString();
 
   const body = {
-    message: `${toAdd.length} Einträge vom iPhone`,
+    message: `${toAdd.length} Eintr. [${getUser()||'?'}]`,
     content: b64enc(JSON.stringify(existing, null, 2)),
     ...(sha ? {sha} : {}),
   };
   try {
-    const r = await fetch(GH_API, {method:'PUT', headers, body:JSON.stringify(body)});
+    const r = await fetch(api, {method:'PUT', headers, body:JSON.stringify(body)});
     return r.ok;
   } catch { return false; }
 }
@@ -359,18 +361,27 @@ function setSyncBadge(cls, text) {
 }
 function updateSyncBadge() {
   const n = getPending().length;
-  if (n===0) setSyncBadge('ok','✓ synchronisiert');
-  else setSyncBadge('pending', `⏱ ${n} ausstehend`);
+  const u = getUser();
+  const who = u ? ` [${u}]` : '';
+  if (n===0) setSyncBadge('ok', `✓${who} synchronisiert`);
+  else setSyncBadge('pending', `⏱${who} ${n} ausstehend`);
 }
 
-// ── Token Setup ───────────────────────────────────────────────────────
-function saveToken() {
-  const t = document.getElementById('token-input').value.trim();
+// ── Einrichtung ───────────────────────────────────────────────────────
+function saveSetup() {
+  const u = document.getElementById('s-user').value.trim().toUpperCase();
+  const t = document.getElementById('s-token').value.trim();
+  if (!u) { toast('Bitte Kürzel eingeben'); return; }
   if (!t) { toast('Bitte Token eingeben'); return; }
-  setToken(t);
-  document.getElementById('token-card').classList.add('off');
-  toast('Token gespeichert ✓');
-  syncPending();
+  localStorage.setItem(LS_USER, u.toLowerCase());
+  localStorage.setItem(LS_TOKEN, t);
+  document.getElementById('setup-card').classList.add('off');
+  toast(`Eingerichtet als ${u} ✓`);
+  updateSyncBadge(); syncPending();
+}
+function checkSetup() {
+  if (!getToken() || !localStorage.getItem(LS_USER))
+    document.getElementById('setup-card').classList.remove('off');
 }
 
 // ── Onboarding ────────────────────────────────────────────────────────

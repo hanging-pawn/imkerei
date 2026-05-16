@@ -13,7 +13,7 @@ ROOT     = BASE.parent
 EXCEL    = ROOT / "Imkerei_Buchhaltung.xlsx"
 IMPORTED = ROOT / ".importiert_ids.json"
 
-GH_RAW   = "https://raw.githubusercontent.com/hanging-pawn/imkerei/main/data.json"
+GH_CONTENTS = "https://api.github.com/repos/hanging-pawn/imkerei/contents/"
 
 OFF_WHITE = "F8FAFC"; WHITE = "FFFFFF"
 THIN      = Side(style="thin", color="E2E8F0")
@@ -67,17 +67,39 @@ def existing_keys_aus(ws):
     return keys
 
 def fetch_entries():
-    print("  → Hole Daten von GitHub…", end=" ", flush=True)
+    print("  → Suche Datendateien auf GitHub…", end=" ", flush=True)
     try:
-        req = urllib.request.Request(GH_RAW, headers={"Cache-Control": "no-cache"})
+        req = urllib.request.Request(GH_CONTENTS, headers={"Cache-Control": "no-cache", "User-Agent": "imkerei-import"})
         with urllib.request.urlopen(req, timeout=15) as r:
-            data = json.loads(r.read().decode("utf-8"))
-        entries = data.get("entries", [])
-        print(f"{len(entries)} Einträge gefunden")
-        return entries
+            files = json.loads(r.read().decode("utf-8"))
+        data_files = [f for f in files if f["name"].startswith("data") and f["name"].endswith(".json")]
+        print(f"{len(data_files)} Datei(en) gefunden")
     except Exception as e:
         print(f"FEHLER: {e}")
         return None
+
+    all_entries = []
+    seen_ids = set()
+    for f in data_files:
+        try:
+            print(f"  → Lese {f['name']}…", end=" ", flush=True)
+            req2 = urllib.request.Request(f["download_url"], headers={"Cache-Control": "no-cache"})
+            with urllib.request.urlopen(req2, timeout=15) as r:
+                data = json.loads(r.read().decode("utf-8"))
+            entries = data.get("entries", [])
+            neu = 0
+            for e in entries:
+                eid = e.get("id")
+                if eid and eid in seen_ids: continue
+                if eid: seen_ids.add(eid)
+                all_entries.append(e)
+                neu += 1
+            print(f"{neu} Einträge")
+        except Exception as e:
+            print(f"Warnung: {e}")
+
+    print(f"  → Total: {len(all_entries)} Einträge")
+    return all_entries
 
 def main():
     print("\n" + "="*54)
@@ -93,7 +115,7 @@ def main():
         print("\n  Kein Internet oder GitHub nicht erreichbar.")
         input("  Enter zum Beenden..."); return
     if not all_entries:
-        print("  Keine Einträge in data.json.\n")
+        print("  Keine Einträge gefunden.\n")
         input("  Enter zum Beenden..."); return
 
     imported_ids = load_ids()
