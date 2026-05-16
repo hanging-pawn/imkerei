@@ -19,7 +19,17 @@
       "beschreibung": "Mittelwände",
       "betrag": 79,
       "notiz": "Frei"
+    },
+    {
+      "id": "bf994bb3-92cd-4901-a244-91ba70543eab",
+      "type": "aus",
+      "datum": "2026-04-10",
+      "ts": 1778908004385,
+      "kategorie": "Ausrüstung",
+      "beschreibung": "Material",
+      "betrag": 750,
+      "notiz": "Frei"
     }
   ],
-  "lastUpdated": "2026-05-16T05:06:01.141Z"
+  "lastUpdated": "2026-05-16T05:06:44.680Z"
 }
