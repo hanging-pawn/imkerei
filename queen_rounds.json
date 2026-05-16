@@ -1,1 +1,15 @@
-{"rounds":[],"lastUpdated":""}
+{
+  "rounds": [
+    {
+      "id": "76be783b-29f4-425c-8390-9835f0ae43f5",
+      "name": "Starter-Finisher – Fr. 15. Mai 2026",
+      "method": "starter_finisher",
+      "fixType": "umlarv",
+      "fixDate": "2026-05-15",
+      "createdAt": "2026-05-16T06:05:48.273Z",
+      "_synced": false,
+      "_saved": true
+    }
+  ],
+  "lastUpdated": "2026-05-16T06:06:17.159Z"
+}
