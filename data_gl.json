@@ -29,7 +29,17 @@
       "beschreibung": "Material",
       "betrag": 750,
       "notiz": "Frei"
+    },
+    {
+      "id": "5247b160-1d49-499c-bebc-e4bfa222c68d",
+      "type": "aus",
+      "datum": "2026-04-10",
+      "ts": 1778908029786,
+      "kategorie": "Ausrüstung",
+      "beschreibung": "Material",
+      "betrag": 71.5,
+      "notiz": "Frei"
     }
   ],
-  "lastUpdated": "2026-05-16T05:06:44.680Z"
+  "lastUpdated": "2026-05-16T05:07:10.000Z"
 }
