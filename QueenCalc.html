@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Königinnenzucht">
+<title>Königinnenzucht Rechner</title>
+<style>
+:root {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --card2: #263348;
+  --accent: #d97706;
+  --accent2: #f59e0b;
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --green: #22c55e;
+  --red: #ef4444;
+  --orange: #f97316;
+  --blue: #3b82f6;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  min-height: 100vh; overscroll-behavior: none;
+  padding-bottom: calc(var(--safe-bot) + 70px);
+}
+.hdr {
+  background: var(--card);
+  padding: calc(var(--safe-top) + 12px) 16px 12px;
+  position: sticky; top: 0; z-index: 100;
+  border-bottom: 1px solid #334155;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.hdr-title { font-size: 17px; font-weight: 700; color: var(--accent2); }
+.hdr-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.sync-badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; background: #1e3a2f; color: var(--green); }
+.sync-badge.pending { background: #3a2a1e; color: var(--orange); }
+.sync-badge.syncing { background: #1e2a3a; color: var(--blue); }
+.tabbar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--card); border-top: 1px solid #334155;
+  display: flex; padding-bottom: var(--safe-bot); z-index: 100;
+}
+.tab { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 4px; font-size: 10px; color: var(--muted); border: none; background: none; cursor: pointer; gap: 3px; }
+.tab .ti { font-size: 22px; line-height: 1; }
+.tab.active { color: var(--accent2); }
+.screen { display: none; padding: 16px; }
+.screen.active { display: block; }
+.card { background: var(--card); border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid #334155; }
+.card-title { font-size: 13px; color: var(--muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; margin-top: 12px; }
+label:first-of-type { margin-top: 0; }
+input[type=text], input[type=date], select {
+  width: 100%; font-size: 16px; padding: 12px;
+  background: var(--card2); color: var(--text);
+  border: 1px solid #334155; border-radius: 10px;
+  -webkit-appearance: none; appearance: none; outline: none;
+}
+input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; }
+.seg { display: flex; background: var(--card2); border-radius: 10px; padding: 3px; margin-bottom: 0; }
+.seg-btn { flex: 1; padding: 8px 4px; font-size: 13px; border-radius: 8px; border: none; background: none; color: var(--muted); cursor: pointer; font-weight: 500; }
+.seg-btn.active { background: var(--accent); color: #fff; }
+.btn { width: 100%; padding: 15px; border-radius: 12px; font-size: 16px; font-weight: 700; border: none; cursor: pointer; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-secondary { background: var(--card2); color: var(--text); border: 1px solid #334155; }
+.btn-sm { padding: 7px 12px; font-size: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; }
+.btn-sm.ics { background: #1e3a5f; color: #93c5fd; }
+.btn-sm.del { background: #3a1e1e; color: #fca5a5; }
+.btn-sm.grn { background: #1e3a2f; color: #86efac; }
+.method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mc { background: var(--card2); border: 2px solid transparent; border-radius: 12px; padding: 12px 10px; cursor: pointer; }
+.mc.sel { border-color: var(--accent2); background: #2a2010; }
+.mc-icon { font-size: 22px; margin-bottom: 4px; display: block; }
+.mc-name { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1.2; }
+.mc-desc { font-size: 10px; color: var(--muted); margin-top: 3px; line-height: 1.3; }
+.tl-hdr { background: var(--card); border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid #334155; }
+.tl-name { font-size: 18px; font-weight: 700; }
+.tl-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.tl-acts { display: flex; gap: 8px; margin-top: 12px; }
+.step-item { background: var(--card); border-radius: 12px; margin-bottom: 8px; overflow: hidden; border: 1px solid #334155; }
+.step-item.overdue { border-color: var(--red); }
+.step-item.today   { border-color: var(--accent2); background: #2a2010; }
+.step-item.soon    { border-color: var(--orange); }
+.step-item.done    { opacity: 0.45; }
+.step-head { display: flex; align-items: center; gap: 10px; padding: 12px; cursor: pointer; }
+.si { font-size: 20px; flex-shrink: 0; width: 32px; text-align: center; }
+.step-info { flex: 1; min-width: 0; }
+.step-label { font-size: 14px; font-weight: 600; }
+.step-date  { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.sbadge { font-size: 10px; padding: 3px 8px; border-radius: 20px; flex-shrink: 0; font-weight: 600; }
+.sbadge.overdue { background: #3a1e1e; color: #fca5a5; }
+.sbadge.today   { background: #3a2a10; color: var(--accent2); }
+.sbadge.soon    { background: #3a2a1e; color: var(--orange); }
+.sbadge.future  { background: #1e293b; color: var(--muted); }
+.sbadge.done    { background: #1e3a2f; color: var(--green); }
+.sbadge.prep    { background: #1e2a3a; color: #93c5fd; }
+.step-detail { display: none; padding: 0 12px 12px 54px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.step-detail.open { display: block; }
+.step-detail-ft { display: flex; gap: 6px; margin-top: 8px; }
+.round-card { background: var(--card); border-radius: 14px; border: 1px solid #334155; overflow: hidden; margin-bottom: 10px; }
+.rc-body { padding: 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.rc-icon { font-size: 26px; flex-shrink: 0; }
+.rc-info { flex: 1; min-width: 0; }
+.rc-name { font-size: 15px; font-weight: 700; }
+.rc-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.rc-next { font-size: 12px; color: var(--accent2); margin-top: 4px; }
+.rc-acts { display: flex; gap: 6px; padding: 0 14px 14px; }
+.sec-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.sec-hdr-t { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.empty { text-align: center; padding: 60px 24px; }
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-text { color: var(--muted); font-size: 14px; line-height: 1.5; }
+.setup-card { background: var(--card); border: 1px solid var(--accent); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+.setup-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.setup-desc { font-size: 12px; color: var(--muted); margin-bottom: 12px; line-height: 1.4; }
+.setup-row { display: flex; gap: 8px; margin-top: 10px; }
+.toast { position: fixed; bottom: calc(var(--safe-bot) + 80px); left: 50%; transform: translateX(-50%) translateY(20px); background: #334155; color: var(--text); padding: 10px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: all 0.2s; pointer-events: none; z-index: 200; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.phase-sep { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; padding: 8px 0 4px; font-weight: 700; }
+.back-btn { background: none; border: none; color: var(--accent2); font-size: 15px; cursor: pointer; padding: 0; font-weight: 600; }
+.onboard { background: var(--card); border-radius: 14px; padding: 20px; margin-bottom: 16px; text-align: center; border: 1px solid #334155; }
+.onboard h3 { font-size: 16px; margin-bottom: 8px; }
+.onboard p  { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 12px; }
+.off { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="hdr-title">👑 Königinnenzucht</div>
+    <div class="hdr-sub">Zuchtkalender Rechner</div>
+  </div>
+  <div class="sync-badge" id="sync-badge">⏳ …</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- LIST -->
+<div class="screen active" id="screen-list">
+  <div class="onboard off" id="onboard">
+    <h3>Zum Homescreen hinzufügen</h3>
+    <p>Tippe in Safari auf <strong>Teilen ⎙</strong> → <strong>„Zum Home-Bildschirm"</strong> für Offline-Nutzung.</p>
+    <button class="btn btn-secondary" style="font-size:14px;padding:10px" onclick="closeOnboard()">Verstanden</button>
+  </div>
+  <div class="setup-card off" id="setup-card">
+    <div class="setup-title">⚙️ GitHub-Sync einrichten</div>
+    <div class="setup-desc">GitHub Personal Access Token (PAT) für Backup und Geräte-Sync. Freiwillig — App funktioniert auch ohne.</div>
+    <label>Kürzel (z.B. GL)</label>
+    <input type="text" id="s-user" placeholder="GL" maxlength="3" style="text-transform:uppercase">
+    <label>GitHub Token</label>
+    <input type="text" id="s-token" placeholder="ghp_…" autocomplete="off">
+    <div class="setup-row">
+      <button class="btn btn-primary" style="font-size:14px;padding:11px" onclick="saveSetup()">Speichern</button>
+      <button class="btn btn-secondary" style="font-size:14px;padding:11px;flex:0 0 auto" onclick="hideSetup()">Überspringen</button>
+    </div>
+  </div>
+  <div class="sec-hdr">
+    <span class="sec-hdr-t">Meine Zuchtrunden</span>
+    <button class="btn-sm grn" onclick="showScreen('new')">+ Neue Runde</button>
+  </div>
+  <div id="round-list"></div>
+</div>
+
+<!-- NEW -->
+<div class="screen" id="screen-new">
+  <div style="margin-bottom:12px">
+    <button class="back-btn" onclick="showScreen('list')">‹ Zurück</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Neue Zuchtrunde</div>
+    <label>Name (optional)</label>
+    <input type="text" id="f-name" placeholder="z.B. Serie 1 – Mai 2026">
+    <label>Fixtermin-Typ</label>
+    <div class="seg">
+      <button class="seg-btn active" id="seg-u" onclick="setFix('umlarv')">Umlarvdatum</button>
+      <button class="seg-btn" id="seg-s" onclick="setFix('schlupf')">Schlupfdatum</button>
+    </div>
+    <label id="date-label">Umlarvdatum</label>
+    <input type="date" id="f-date">
+    <label>Pflegesystem</label>
+    <div class="method-grid" id="method-grid"></div>
+  </div>
+  <button class="btn btn-primary" onclick="calculate()" style="margin-top:4px">Termine berechnen →</button>
+</div>
+
+<!-- TIMELINE -->
+<div class="screen" id="screen-tl">
+  <div style="margin-bottom:12px">
+    <button class="back-btn" id="tl-back" onclick="tlBack()">‹ Zurück</button>
+  </div>
+  <div class="tl-hdr">
+    <div class="tl-name" id="tl-name">–</div>
+    <div class="tl-meta" id="tl-meta">–</div>
+    <div class="tl-acts">
+      <button class="btn-sm ics" onclick="exportAll()" style="flex:1">📅 Alle in Kalender</button>
+      <button class="btn-sm grn" id="tl-save-btn" onclick="saveRound()" style="flex:1">💾 Speichern</button>
+    </div>
+  </div>
+  <div id="tl-steps"></div>
+</div>
+
+<div class="tabbar">
+  <button class="tab active" id="tab-list" onclick="showTab('list')"><span class="ti">🐝</span>Runden</button>
+  <button class="tab" id="tab-new"  onclick="showTab('new')"><span class="ti">➕</span>Neu</button>
+  <button class="tab" id="tab-cfg"  onclick="showTab('cfg')"><span class="ti">⚙️</span>Setup</button>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────
+const GH_USER  = 'hanging-pawn';
+const GH_REPO  = 'imkerei';
+const GH_FILE  = 'queen_rounds.json';
+const LS_TOKEN = 'queen_gh_token';
+const LS_USER  = 'queen_user';
+const LS_KEY   = 'queen_rounds';
+const LS_OB    = 'queen_ob';
+
+// ── Shared end steps ──────────────────────────────────────
+const E = [
+  { day:5,       icon:'🧪', label:'Verschulen A – nach Verdeckeln', type:'action',
+    info:'Zellen verdeckelt — jetzt unempfindlichste Phase. Einzeln in Schlupfkäfige setzen, Boden mit Königinnenfutter. Nur senkrecht transportieren! Leichtes Drehen löst den Stopfen.' },
+  { day:12,      icon:'🧪', label:'Verschulen B – 2 Tage vor Schlupf', type:'action',
+    info:'Zweite unempfindliche Phase. Falls Verschulen A verpasst — letzte Chance vor dem Schlupf.' },
+  { day:13,      icon:'👑', label:'Schlupf der Königin', type:'event', urgent:true,
+    info:'Königin schlüpft meist mittags ~14 Uhr. Prüfen: Flügel vollständig, Brust groß. Kleine Brust oder Fehlbildung = aussortieren!' },
+  { day:14,      icon:'📦', label:'EWK / Begattungsableger bilden', type:'action',
+    info:'Einwabenkasten mit 100–150g Begleitbienen und Futterteig. Einige Stunden dunkel und kühl beruhigen. Große Öffnung (12mm) öffnen.' },
+  { day:17,      icon:'🏔️', label:'EWK zur Belegstelle', type:'action',
+    info:'Absperrgitter auf große Öffnung stellen. Transport kühl, dunkel, erschütterungsarm. Belegstellenleiter vorab kontaktieren.' },
+  { day:[18,20], icon:'💨', label:'Begattungsflüge', type:'event',
+    info:'Ab 5–7 Tage nach Schlupf bei >20°C und Sonnenschein. Königin paart sich mit bis zu 36 Drohnen auf mehreren Flügen.' },
+  { day:[23,27], icon:'🔍', label:'Legebeginn prüfen', type:'check',
+    info:'Einzelnes Ei zentriert in Zelle = befruchtet ✓. Mehrere Eier oder Eier an Zellwand = Drohnenkönigin → sofort austauschen!' },
+  { day:[37,41], icon:'✅', label:'Brutnest beurteilen', type:'check', urgent:true,
+    info:'Geschlossenes, flächiges, regelmäßiges Brutnest = abgabereif. Mindeststandard für qualitätsgesicherte Weitergabe.' },
+];
+const E_BS = [
+  { day:5, icon:'🌡️', label:'Verdeckelt → Brutschrank', type:'action', urgent:true,
+    info:'Verdeckelte Zellen in Brutschrank: exakt 34,5°C, 70% rel. Luftfeuchte. Täglich min. 2× kontrollieren! Temp.-Abweichung >2°C = verkrüppelte Flügel oder Tod der Puppe. Wasserschalen für Feuchte.' },
+  E[1],E[2],E[3],E[4],E[5],E[6],E[7],
+];
+const E_BES = [
+  E[0],E[1],E[2],
+  { day:14, icon:'📦', label:'Kleines Begattungsvölkchen bilden', type:'action',
+    info:'Kleines Volk (Mini-Plus oder EWK) mit Begleitbienen vorbereiten. Keine Belegstelle nötig.' },
+  { day:[18,21], icon:'💉', label:'Künstliche Besamung', type:'event', urgent:true,
+    info:'5–8 Tage nach Schlupf: Königin begattungsreif. Besamungsgerät + Spermien von ausgewählten Drohnen. CO₂-Narkose für ruhige Besamung. Fachkenntnisse erforderlich!' },
+  { day:22, icon:'⏸️', label:'Ruhephase nach Besamung', type:'action',
+    info:'Königin im kleinen Volk belassen. Ruhe einhalten. Körper braucht Zeit zur Erholung nach der Besamung.' },
+  { day:[25,28], icon:'🔍', label:'Legebeginn prüfen', type:'check',
+    info:'Erste Eier ohne Hochzeitsflug? Bei Erfolg: reguläre Arbeiterinnenbrut. Misserfolg → neue Besamung oder Neustart.' },
+  { day:[37,41], icon:'✅', label:'Brutnest beurteilen', type:'check', urgent:true,
+    info:'Regelmäßiges, geschlossenes Brutnest = Besamung erfolgreich. Ergebnis auf Zuchtkarte dokumentieren.' },
+];
+
+// ── Methods ───────────────────────────────────────────────
+const METHODS = {
+  absperrgitter: { name:'Weisellos Absperrgitter', icon:'🔒', desc:'Standard, einfach', end:E,
+    steps:[
+      { day:-9, icon:'🔒', label:'Absperrgitter einlegen', type:'prep',
+        info:'Absperrgitter zwischen Bruträume. Königin auf untere Zarge beschränken. Oben sammeln sich 9 Tage lang Jungbienen — ideal für Pflege.' },
+      { day:0,  icon:'🐛', label:'Umlarven + Volk entweiseln', type:'action', urgent:true,
+        info:'Königin entnehmen → Ableger bilden. Gedeckelte Brut + Futter in eine Zarge zusammenstauchen. Bienen dazufegen. 2–3h Weiselunruhe abwarten, dann Zuchtrahmen einhängen. Absperrgitter VOR Flugloch — verhindert Einflug begatteter Königinnen!' },
+      { day:1,  icon:'👁️', label:'Annahme kontrollieren', type:'check',
+        info:'Min. 10–15 angenommene Zellen (sehen aus wie Erdnüsse). Bei schwacher Annahme (<5): Wabe offener Brut für 24h zuhängen.' },
+    ]},
+  sammelableger: { name:'Sammelableger', icon:'🏗️', desc:'Beste Pflegebedingungen', end:E,
+    steps:[
+      { day:-9, icon:'🏗️', label:'Sammelableger bilden', type:'prep',
+        info:'Überwiegend verdeckelte Brutwaben + ansitzende Bienen aus mehreren gesunden Völkern zusammenstellen. Futter + Pollen. Außerhalb Flugraum aufstellen!' },
+      { day:-1, icon:'⚠️', label:'⚠️ Nachschaffungszellen brechen', type:'prep', urgent:true,
+        info:'ALLE Nachschaffungszellen finden und brechen! Bienen von jeder Wabe abstoßen (Zellen oft versteckt in Wabenmitte). Eine übersehene Zelle = erste schlüpfende Königin tötet alle anderen!' },
+      { day:0,  icon:'🐛', label:'Umlarven + einsetzen', type:'action', urgent:true,
+        info:'Nach 2–3h Weiselunruhe Zuchtrahmen einhängen. Viele frisch geschlüpfte Jungbienen = optimale Pflegebedingungen.' },
+      { day:1,  icon:'👁️', label:'Annahme kontrollieren', type:'check',
+        info:'Min. 10 angenommene Zellen. Sammelableger kann mehrere Serien hintereinander übernehmen.' },
+    ]},
+  starter_finisher: { name:'Starter-Finisher', icon:'🔄', desc:'Höchste Annahmerate', end:E,
+    steps:[
+      { day:0,  icon:'🐛', label:'Starter vorbereiten + Umlarven', type:'action', urgent:true,
+        info:'Starkvolk entweiseln → Ableger. Starter: nur verdeckelte Brut + Futter, Bienen von 6–8 Waben dazufegen. Nach 2h Weiselunruhe: 2 Zuchtrahmen. Bei Trachtmangel füttern!' },
+      { day:1,  icon:'👁️', label:'Annahme im Starter prüfen', type:'check',
+        info:'Starter kann 4–5 Serien übernehmen solange Annahme >70%. Sobald Annahme sinkt → keine neue Serie.' },
+      { day:2,  icon:'🔄', label:'Zellen in Finisher umhängen', type:'action', urgent:true,
+        info:'Vorgepflegte Zellen zwischen Brutwaben in Honigraum weiselrichtiger Finisher-Völker. Max. 10–12 Zellen je Finisher.' },
+    ]},
+  anbrueter: { name:'Anbrüter weiselrichtig', icon:'📦', desc:'Kein Entweiseln nötig', end:E,
+    steps:[
+      { day:-1, icon:'📦', label:'Anbrütekasten vorbereiten', type:'prep',
+        info:'Bienen von mind. 6–8 Waben einfegen (Königin bleibt im Volk!). Wasser-, Pollen-, Futterwabe. Min. 4cm Abstand Aufsatz–Rähmchen. Weiselunruhe eintreten lassen.' },
+      { day:0,  icon:'🐛', label:'Umlarven + in Anbrüter', type:'action', urgent:true,
+        info:'Näpfchen in Aufsatz einhängen. Hohe Annahmerate durch Weisellosigkeit. Kein Volk wird geopfert.' },
+      { day:1,  icon:'🔄', label:'Näpfchen in Finisher (nach 30h)', type:'action', urgent:true,
+        info:'Vorgepflegte Näpfchen in weiselrichtige Wirtschaftsvölker (Honigraum, zwischen Brutwaben). Max. 10–12 je Finisher.' },
+    ]},
+  piana: { name:'Weiselrichtig (Piana)', icon:'🌿', desc:'Kein Entweiseln, einfach', end:E,
+    steps:[
+      { day:-9, icon:'🌿', label:'Brutwaben über Absperrgitter', type:'prep',
+        info:'Brutwaben in Honigraum über Absperrgitter. Jungbienen schlüpfen dort und sammeln sich in 9 Tagen.' },
+      { day:0,  icon:'🐛', label:'Fliegengitter einlegen + Umlarven', type:'action', urgent:true,
+        info:'Absperrgitter gegen Fliegengitter → Honigraum kurzzeitig weisellos. Zuchtstoff nach 2h einhängen (ideal auf Dreispitz). Volk bleibt vollständig erhalten.' },
+      { day:1,  icon:'🔒', label:'Fliegengitter → Absperrgitter', type:'action',
+        info:'Wieder normales Absperrgitter. Volk weiselrichtig. Angenommene Zellen werden weitergepflegt. Nachteil: unsichere Annahme, wenige Zellen.' },
+    ]},
+  cloake: { name:'Cloake Board', icon:'🎯', desc:'Professionell, beste Kontrolle', end:E,
+    steps:[
+      { day:-7, icon:'🎯', label:'Cloake Board einlegen', type:'prep',
+        info:'Board zwischen Brutraum und Honigraum (ohne Metallblech). Bienen passieren frei. Jungbienen sammeln sich im Honigraum über 7 Tage.' },
+      { day:-1, icon:'🔃', label:'Brutraum 180° drehen', type:'prep',
+        info:'Brutraum drehen → Bienen nutzen nur noch Cloake-Eingang. Jungbienen sammeln sich weiter oben.' },
+      { day:0,  icon:'🐛', label:'Metallblech + Umlarven', type:'action', urgent:true,
+        info:'Metallblech einschieben → Honigraum weisellos. Zugang: oben offen, unten geschlossen. Nach 2–4h Zuchtrahmen einhängen.' },
+      { day:1,  icon:'✅', label:'Metallblech entfernen', type:'action',
+        info:'Blech raus → Volk wieder weiselrichtig. Wirtschaftsvolk vollständig erhalten — großer Vorteil.' },
+    ]},
+  zwischenableger: { name:'Weisellos Zwischenableger', icon:'🔀', desc:'Gezielte Zellannahme', end:E,
+    steps:[
+      { day:-9, icon:'🔀', label:'Zwischenableger bilden', type:'prep',
+        info:'Kleines weiselloses Volk aus Wirtschaftsvolk. Jungbienen, verdeckelte Brut, Futter. Für 5–10 Zellen optimiert.' },
+      { day:0,  icon:'🐛', label:'Umlarven + einsetzen', type:'action', urgent:true,
+        info:'Nach 2–3h Weiselunruhe Zuchtrahmen einhängen. Kleines Volk = hohe konzentrierte Pflegebereitschaft.' },
+      { day:1,  icon:'👁️', label:'Annahme kontrollieren', type:'check',
+        info:'Min. 5–8 angenommene Zellen.' },
+      { day:2,  icon:'🔄', label:'Optional: in Finisher umhängen', type:'action',
+        info:'Für bessere Endpflege: vorgepflegte Zellen in stärkeres weiselrichtiges Volk — erhöht Qualität deutlich.' },
+    ]},
+  jenter: { name:'Jenter (ohne Umlarven)', icon:'🧬', desc:'Kein Umlarven, sehr einfach', end:E,
+    steps:[
+      { day:-4, icon:'🧬', label:'Königin in Jenter einsetzen', type:'prep',
+        info:'Königin für exakt 24h in Jenter-Kassette. Kassette im Brutnest belassen damit Königin problemlos einläuft.' },
+      { day:-3, icon:'🚪', label:'Königin entfernen', type:'prep',
+        info:'Nach 24h entfernen. Eier vorhanden. Kassette noch 3 Tage im Volk — Bienen pflegen Larven in den Cups.' },
+      { day:0,  icon:'🐛', label:'Cups in Pflegevolk', type:'action', urgent:true,
+        info:'Larven 1 Tag alt — optimales Alter. Jenter-Cups direkt in beliebiges Pflegevolk. Kein Umlarven nötig!' },
+      { day:1,  icon:'👁️', label:'Annahme kontrollieren', type:'check',
+        info:'Wie Umlarvung. Jenter gibt in der Regel sehr gleichmäßige, gute Annahme.' },
+    ]},
+  brutschrank: { name:'Schneller Brüter (Brutschrank)', icon:'🌡️', desc:'Parallele Serien', end:E_BS,
+    steps:[
+      { day:0,  icon:'🐛', label:'Umlarven + in Pflegevolk', type:'action', urgent:true,
+        info:'Beliebiges Pflegesystem für Annahme. Bis Verdeckelung normal im Volk. Brutschrank auf 34,5°C und 70% LF voreinstellen und 24h prüfen.' },
+      { day:1,  icon:'👁️', label:'Annahme kontrollieren', type:'check',
+        info:'Wie gewähltes Pflegesystem. Auf gute Annahmerate achten.' },
+    ]},
+  besamung: { name:'Besamung (künstlich)', icon:'💉', desc:'Kontrollierte Genetik', end:E_BES,
+    steps:[
+      { day:0,  icon:'🐛', label:'Umlarven + in Pflegevolk', type:'action', urgent:true,
+        info:'Beliebiges Pflegesystem. Entwicklung bis Schlupf identisch. Gleichzeitig Drohnen für Besamung vorbereiten (Samen ernten + aufbereiten).' },
+      { day:1,  icon:'👁️', label:'Annahme kontrollieren', type:'check',
+        info:'Wie Standardmethode. Besamungsgerät sterilisieren und testen.' },
+    ]},
+};
+
+// ── State ─────────────────────────────────────────────────
+let fixType = 'umlarv';
+let selMethod = 'absperrgitter';
+let curRound = null;
+let tlFromList = false;
+let isSyncing = false;
+
+// ── Date utils ────────────────────────────────────────────
+function today()  { return new Date().toISOString().slice(0,10); }
+function addDays(ds, n) {
+  const d = new Date(ds + 'T12:00:00'); d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0,10);
+}
+function fmt(ds) { return new Date(ds+'T12:00:00').toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short',year:'numeric'}); }
+function fmtS(ds){ return new Date(ds+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'}); }
+function diff(ds) {
+  const n=new Date(); n.setHours(0,0,0,0);
+  const d=new Date(ds+'T12:00:00'); d.setHours(0,0,0,0);
+  return Math.round((d-n)/86400000);
+}
+function badge(ds, type) {
+  if(type==='prep') return {cls:'prep', txt:'Vorbereitung'};
+  const d=diff(ds);
+  if(d<0)  return {cls:'done',   txt:'Erledigt'};
+  if(d===0) return {cls:'today', txt:'Heute!'};
+  if(d<=3)  return {cls:'soon',  txt:`In ${d}d`};
+  return {cls:'future', txt:fmtS(ds)};
+}
+function itmCls(ds, type) {
+  if(type==='prep') return '';
+  const d=diff(ds);
+  if(d<0) return 'done'; if(d===0) return 'today'; if(d<=3) return 'soon';
+  return '';
+}
+
+// ── Step calc ─────────────────────────────────────────────
+function calcSteps(round) {
+  const m = METHODS[round.method];
+  const all = [...m.steps, ...m.end];
+  let umlarv = round.fixType==='umlarv' ? round.fixDate : addDays(round.fixDate,-13);
+  return all.map(s => {
+    let sd, ed, dl;
+    if(Array.isArray(s.day)) {
+      sd = addDays(umlarv, s.day[0]);
+      ed = addDays(umlarv, s.day[1]);
+      dl = `Tag +${s.day[0]}–+${s.day[1]}`;
+    } else {
+      sd = addDays(umlarv, s.day);
+      ed = null;
+      dl = s.day<0 ? `Tag ${s.day}` : s.day===0 ? 'Tag 0' : `Tag +${s.day}`;
+    }
+    return {...s, sd, ed, umlarv, dl};
+  });
+}
+
+function nextStep(round) {
+  const steps = calcSteps(round);
+  return steps.find(s => s.type!=='prep' && diff(s.sd)>=0) || null;
+}
+
+// ── Method grid ───────────────────────────────────────────
+function buildGrid() {
+  const g = document.getElementById('method-grid');
+  g.innerHTML = '';
+  Object.entries(METHODS).forEach(([id, m]) => {
+    const d = document.createElement('div');
+    d.className = 'mc' + (id===selMethod ? ' sel' : '');
+    d.onclick = () => { selMethod=id; document.querySelectorAll('.mc').forEach(c=>c.classList.remove('sel')); d.classList.add('sel'); };
+    d.innerHTML = `<span class="mc-icon">${m.icon}</span><div class="mc-name">${m.name}</div><div class="mc-desc">${m.desc}</div>`;
+    g.appendChild(d);
+  });
+}
+
+function setFix(t) {
+  fixType=t;
+  document.getElementById('seg-u').classList.toggle('active', t==='umlarv');
+  document.getElementById('seg-s').classList.toggle('active', t==='schlupf');
+  document.getElementById('date-label').textContent = t==='umlarv' ? 'Umlarvdatum' : 'Schlupfdatum';
+}
+
+// ── Calculate ─────────────────────────────────────────────
+function calculate() {
+  const dv = document.getElementById('f-date').value;
+  if(!dv) { toast('Bitte Datum wählen'); return; }
+  const name = document.getElementById('f-name').value.trim() ||
+    `${METHODS[selMethod].name} – ${fmt(dv)}`;
+  curRound = {
+    id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)),
+    name, method: selMethod, fixType, fixDate: dv,
+    createdAt: new Date().toISOString(), _synced: false, _saved: false,
+  };
+  tlFromList = false;
+  showTL(curRound, false);
+}
+
+// ── Timeline ──────────────────────────────────────────────
+function showTL(round, fromList) {
+  curRound = round; tlFromList = fromList;
+  const m = METHODS[round.method];
+  const steps = calcSteps(round);
+  const umlarv = steps.find(s=>s.day===0)?.sd || round.fixDate;
+
+  document.getElementById('tl-name').textContent = round.name;
+  document.getElementById('tl-meta').textContent = `${m.icon} ${m.name} · Umlarvdatum: ${fmt(umlarv)}`;
+
+  const saved = getLocal().find(r=>r.id===round.id);
+  const sb = document.getElementById('tl-save-btn');
+  if(saved) { sb.textContent='✓ Gespeichert'; sb.disabled=true; }
+  else { sb.textContent='💾 Speichern'; sb.disabled=false; }
+
+  const con = document.getElementById('tl-steps'); con.innerHTML='';
+  let lastPhase='';
+  steps.forEach((s, i) => {
+    let phase='';
+    if(s.type==='prep') phase='— Vorbereitung —';
+    else if(s.day===0) phase='— Zucht startet —';
+    else if(s.day===13) phase='— Schlupf & Begattung —';
+    else if(Array.isArray(s.day) && s.day[0]>=18) phase='— Kontrolle —';
+    if(phase && phase!==lastPhase) {
+      const sep=document.createElement('div'); sep.className='phase-sep'; sep.textContent=phase;
+      con.appendChild(sep); lastPhase=phase;
+    }
+    const b=badge(s.sd, s.type); const ic=itmCls(s.sd, s.type);
+    const eStr = s.ed ? ` – ${fmtS(s.ed)}` : '';
+    const itm = document.createElement('div');
+    itm.className = `step-item ${ic}`;
+    itm.innerHTML = `
+      <div class="step-head" onclick="tog(${i})">
+        <div class="si">${s.icon}</div>
+        <div class="step-info">
+          <div class="step-label">${s.label}</div>
+          <div class="step-date">${fmt(s.sd)}${eStr} · ${s.dl}</div>
+        </div>
+        <div class="sbadge ${b.cls}">${b.txt}</div>
+      </div>
+      <div class="step-detail" id="det-${i}">
+        ${s.info}
+        <div class="step-detail-ft">
+          <button class="btn-sm ics" onclick="expStep(${i})">📅 In Kalender</button>
+        </div>
+      </div>`;
+    con.appendChild(itm);
+  });
+  showScreen('tl');
+}
+
+function tog(i) { document.getElementById('det-'+i).classList.toggle('open'); }
+function tlBack() { tlFromList ? showScreen('list') : showScreen('new'); }
+
+// ── Save / Delete ─────────────────────────────────────────
+function saveRound() {
+  if(!curRound) return;
+  if(!getLocal().find(r=>r.id===curRound.id)) {
+    curRound._saved=true; addLocal({...curRound});
+    toast('Runde gespeichert ✓');
+    document.getElementById('tl-save-btn').textContent='✓ Gespeichert';
+    document.getElementById('tl-save-btn').disabled=true;
+    syncPending(); renderList();
+  }
+}
+function delRound(id) {
+  localStorage.setItem(LS_KEY, JSON.stringify(getLocal().filter(r=>r.id!==id)));
+  renderList(); toast('Runde gelöscht');
+}
+
+function renderList() {
+  const rounds = [...getLocal()].reverse();
+  const con = document.getElementById('round-list');
+  if(!rounds.length) {
+    con.innerHTML=`<div class="empty"><div class="empty-icon">🐝</div><div class="empty-text">Noch keine Zuchtrunden.<br>Tippe auf <strong>„+ Neue Runde"</strong>.</div></div>`;
+    return;
+  }
+  con.innerHTML='';
+  rounds.forEach(r => {
+    const m = METHODS[r.method]||{name:r.method,icon:'?'};
+    const ns = nextStep(r);
+    const nxt = ns ? `Nächstes: ${ns.label} (${fmtS(ns.sd)})` : '✅ Alle Termine erledigt';
+    const d = document.createElement('div');
+    d.className='round-card';
+    d.innerHTML=`
+      <div class="rc-body" onclick="viewRound('${r.id}')">
+        <div class="rc-icon">${m.icon}</div>
+        <div class="rc-info">
+          <div class="rc-name">${r.name}</div>
+          <div class="rc-meta">${m.name} · ${fmtS(r.createdAt?.slice(0,10)||today())}</div>
+          <div class="rc-next">${nxt}</div>
+        </div>
+        <div style="color:var(--muted);font-size:18px">›</div>
+      </div>
+      <div class="rc-acts">
+        <button class="btn-sm ics" onclick="expRound('${r.id}')">📅 Kalender</button>
+        <button class="btn-sm del" onclick="delRound('${r.id}')">🗑 Löschen</button>
+        ${!r._synced?'<span style="font-size:11px;color:var(--orange);align-self:center">⏱ nicht sync</span>':''}
+      </div>`;
+    con.appendChild(d);
+  });
+}
+function viewRound(id) {
+  const r = getLocal().find(r=>r.id===id);
+  if(r) showTL(r, true);
+}
+
+// ── ICS export ────────────────────────────────────────────
+function icsDate(ds) { return ds.replace(/-/g,''); }
+function makeEv(s, name) {
+  const sd=icsDate(s.sd), ed=icsDate(addDays(s.ed||s.sd,1));
+  const desc=s.info.replace(/,/g,'\\,').replace(/\n/g,'\\n');
+  return ['BEGIN:VEVENT',`DTSTART;VALUE=DATE:${sd}`,`DTEND;VALUE=DATE:${ed}`,
+    `SUMMARY:${s.icon} ${s.label} – ${name}`,`DESCRIPTION:${desc}`,
+    `UID:${Date.now()}-${Math.random().toString(36).slice(2)}@qc`,'END:VEVENT'].join('\r\n');
+}
+function buildICS(evs) {
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//QueenCalc//DE','CALSCALE:GREGORIAN','METHOD:PUBLISH',
+    ...evs,'END:VCALENDAR'].join('\r\n');
+}
+function dlICS(content, fn) {
+  const b=new Blob([content],{type:'text/calendar;charset=utf-8'});
+  const u=URL.createObjectURL(b); const a=document.createElement('a');
+  a.href=u; a.download=fn; a.click(); URL.revokeObjectURL(u);
+}
+function expStep(i) {
+  const s=calcSteps(curRound)[i];
+  dlICS(buildICS([makeEv(s,curRound.name)]), `queen_${s.label.replace(/\W+/g,'_')}.ics`);
+  toast('Termin exportiert ✓');
+}
+function exportAll() {
+  if(!curRound) return;
+  const evs=calcSteps(curRound).filter(s=>s.type!=='prep').map(s=>makeEv(s,curRound.name));
+  dlICS(buildICS(evs), `queen_${curRound.name.replace(/\W+/g,'_')}.ics`);
+  toast('Alle Termine exportiert ✓');
+}
+function expRound(id) {
+  curRound=getLocal().find(r=>r.id===id); exportAll();
+}
+
+// ── GitHub sync ───────────────────────────────────────────
+function b64e(s){return btoa(unescape(encodeURIComponent(s)));}
+function b64d(s){return decodeURIComponent(escape(atob(s.replace(/\n/g,''))));}
+function tok()  {return localStorage.getItem(LS_TOKEN)||'';}
+function usr()  {return (localStorage.getItem(LS_USER)||'').toUpperCase();}
+function ghUrl(){return `https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`;}
+
+async function syncPending() {
+  const p=getPending(); if(!p.length||isSyncing||!tok()){updateBadge();return;}
+  isSyncing=true; setBadge('syncing','⏳…');
+  try {
+    if(await push(p)){markSynced(p.map(r=>r.id));renderList();setBadge('ok','✓');}
+    else setBadge('pending',`⏱${getPending().length}`);
+  } catch{setBadge('pending',`⏱${getPending().length}`);}
+  isSyncing=false;
+}
+async function push(rounds) {
+  const t=tok(); if(!t)return false;
+  const h={'Authorization':`token ${t}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};
+  let sha=null,ex={rounds:[]};
+  try{const r=await fetch(ghUrl(),{headers:h});if(r.ok){const d=await r.json();sha=d.sha;ex=JSON.parse(b64d(d.content));}}catch{return false;}
+  const ids=new Set((ex.rounds||[]).map(r=>r.id));
+  const add=rounds.filter(r=>!ids.has(r.id)); if(!add.length)return true;
+  ex.rounds=[...(ex.rounds||[]),...add]; ex.lastUpdated=new Date().toISOString();
+  const body={message:`${add.length} Runden [${usr()||'?'}]`,content:b64e(JSON.stringify(ex,null,2)),...(sha?{sha}:{})};
+  try{const r=await fetch(ghUrl(),{method:'PUT',headers:h,body:JSON.stringify(body)});return r.ok;}catch{return false;}
+}
+function setBadge(c,t){const b=document.getElementById('sync-badge');b.className='sync-badge '+c;b.textContent=t;}
+function updateBadge(){const n=getPending().length,u=usr(),w=u?` [${u}]`:'';n===0?setBadge('ok',`✓${w}`):setBadge('pending',`⏱${w}${n}`);}
+
+// ── LocalStorage ──────────────────────────────────────────
+function getLocal()   {try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]');}catch{return[];}}
+function addLocal(r)  {const a=getLocal();a.push(r);localStorage.setItem(LS_KEY,JSON.stringify(a));}
+function getPending() {return getLocal().filter(r=>!r._synced);}
+function markSynced(ids){const s=new Set(ids);localStorage.setItem(LS_KEY,JSON.stringify(getLocal().map(r=>s.has(r.id)?{...r,_synced:true}:r)));}
+
+// ── Setup ─────────────────────────────────────────────────
+function saveSetup() {
+  const u=document.getElementById('s-user').value.trim().toUpperCase();
+  const t=document.getElementById('s-token').value.trim();
+  if(!u){toast('Bitte Kürzel eingeben');return;}
+  if(!t){toast('Bitte Token eingeben');return;}
+  localStorage.setItem(LS_USER,u.toLowerCase()); localStorage.setItem(LS_TOKEN,t);
+  document.getElementById('setup-card').classList.add('off');
+  toast(`Eingerichtet als ${u} ✓`); updateBadge(); syncPending();
+}
+function hideSetup(){document.getElementById('setup-card').classList.add('off');}
+function checkSetup(){if(!tok()&&!localStorage.getItem(LS_USER))document.getElementById('setup-card').classList.remove('off');}
+
+// ── Nav ───────────────────────────────────────────────────
+function showScreen(n) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+n).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const m={list:'tab-list',new:'tab-new',tl:'tab-list',cfg:'tab-cfg'};
+  const t=document.getElementById(m[n]); if(t)t.classList.add('active');
+}
+function showTab(n) {
+  if(n==='cfg'){document.getElementById('setup-card').classList.remove('off');showScreen('list');}
+  else showScreen(n);
+}
+function toast(msg,d=2200){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),d);
+}
+function closeOnboard(){localStorage.setItem(LS_OB,'1');document.getElementById('onboard').classList.add('off');}
+
+// ── Init ──────────────────────────────────────────────────
+document.getElementById('f-date').value = today();
+buildGrid(); renderList(); updateBadge(); syncPending(); checkSetup();
+const isIOS=(/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream);
+const isStnd=(window.navigator.standalone===true||window.matchMedia('(display-mode:standalone)').matches);
+if(isIOS&&!isStnd&&!localStorage.getItem(LS_OB)) document.getElementById('onboard').classList.remove('off');
+if('serviceWorker' in navigator && location.protocol==='https:')
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script>
+</body>
+</html>

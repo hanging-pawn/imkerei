@@ -1,6 +1,7 @@
-const CACHE = 'imkerei-v2';
+const CACHE = 'imkerei-v3';
 const FILES = [
   './Eingabemaske.html',
+  './QueenCalc.html',
   './index.html',
   './_App/manifest.json',
   './_App/icon-180.png',
