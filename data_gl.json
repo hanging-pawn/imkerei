@@ -9,7 +9,17 @@
       "beschreibung": "Mittelwände & rähmchen",
       "betrag": 100,
       "notiz": "Marc"
+    },
+    {
+      "id": "cb66379f-dc2d-4ba3-91c0-7bece846f404",
+      "type": "aus",
+      "datum": "2026-04-22",
+      "ts": 1778907960791,
+      "kategorie": "Ausrüstung",
+      "beschreibung": "Mittelwände",
+      "betrag": 79,
+      "notiz": "Frei"
     }
   ],
-  "lastUpdated": "2026-05-16T05:03:42.415Z"
+  "lastUpdated": "2026-05-16T05:06:01.141Z"
 }
