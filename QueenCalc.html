@@ -128,6 +128,33 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1); opacity
 .onboard h3 { font-size: 16px; margin-bottom: 8px; }
 .onboard p  { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 12px; }
 .off { display: none !important; }
+/* Step forms */
+.step-form { margin-top: 12px; padding-top: 10px; border-top: 1px solid #334155; }
+.step-form .sf-label { font-size: 12px; color: var(--muted); margin-bottom: 3px; margin-top: 8px; display: block; }
+.step-form .sf-label:first-of-type { margin-top: 0; }
+.step-form input[type=number], .step-form textarea, .step-form select {
+  width: 100%; font-size: 14px; padding: 9px 10px;
+  background: var(--bg); color: var(--text);
+  border: 1px solid #334155; border-radius: 8px;
+  -webkit-appearance: none; appearance: none; outline: none; font-family: inherit;
+}
+.step-form textarea { resize: none; height: 52px; }
+.step-form .ck-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; cursor: pointer; }
+.step-form input[type=checkbox] { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--accent); }
+.step-form .ck-lbl { font-size: 14px; color: var(--text); }
+.step-form .save-row { margin-top: 10px; }
+/* Stats card */
+.stat-card { background: var(--card2); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; border: 1px solid #334155; }
+.stat-card-title { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; font-weight: 700; }
+.stat-row { display: flex; align-items: flex-start; gap: 4px; }
+.stat-item { flex: 1; text-align: center; min-width: 0; }
+.stat-val { font-size: 22px; font-weight: 800; color: var(--accent2); line-height: 1; }
+.stat-val.na { font-size: 16px; color: var(--muted); }
+.stat-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; margin-top: 3px; letter-spacing: 0.3px; line-height: 1.2; }
+.stat-arr { color: var(--muted); font-size: 12px; padding-top: 8px; flex-shrink: 0; }
+/* Queen info strip */
+.queen-strip { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.queen-strip span { color: var(--text); }
 </style>
 </head>
 <body>
@@ -186,6 +213,15 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1); opacity
     <input type="date" id="f-date">
     <label>Pflegesystem</label>
     <div class="method-grid" id="method-grid"></div>
+    <div style="border-top:1px solid #334155;margin:16px -16px 0;padding:16px 16px 0">
+      <div class="card-title" style="margin-bottom:0">Zuchtmutter (optional)</div>
+      <label>Herkunft</label>
+      <input type="text" id="f-q-origin" placeholder="z.B. Buckfast Müller">
+      <label>Schlupfjahr</label>
+      <input type="text" id="f-q-year" inputmode="numeric" placeholder="z.B. 2025">
+      <label>Nummer / ID</label>
+      <input type="text" id="f-q-num" placeholder="z.B. A-12">
+    </div>
   </div>
   <button class="btn btn-primary" onclick="calculate()" style="margin-top:4px">Termine berechnen →</button>
 </div>
@@ -203,6 +239,7 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1); opacity
       <button class="btn-sm grn" id="tl-save-btn" onclick="saveRound()" style="flex:1">💾 Speichern</button>
     </div>
   </div>
+  <div id="tl-stats"></div>
   <div id="tl-steps"></div>
 </div>
 
@@ -358,6 +395,43 @@ const METHODS = {
     ]},
 };
 
+// ── Step forms definition ─────────────────────────────────
+// key = stepKey(s), value = array of field descriptors
+const STEP_FORMS = {
+  '0':     [{id:'larvae',   label:'Anzahl Larven',            type:'number'},
+             {id:'notes',   label:'Notizen',                  type:'textarea'}],
+  '1':     [{id:'accepted', label:'Angenommene Zellen',       type:'number'},
+             {id:'notes',   label:'Notizen',                  type:'textarea'}],
+  '5':     [{id:'moved',    label:'Verschulte Zellen',        type:'number'},
+             {id:'notes',   label:'Notizen',                  type:'textarea'}],
+  '12':    [{id:'moved',    label:'Verschulte Zellen',        type:'number'},
+             {id:'notes',   label:'Notizen',                  type:'textarea'}],
+  '13':    [{id:'hatched',  label:'Geschlüpfte Königinnen',   type:'number'},
+             {id:'quality', label:'Qualität i.O.',            type:'checkbox'},
+             {id:'notes',   label:'Notizen',                  type:'textarea'}],
+  '14':    [{id:'ewk',      label:'Anzahl EWK / Ableger',     type:'number'},
+             {id:'notes',   label:'Notizen',                  type:'textarea'}],
+  '18_20': [{id:'mated',   label:'Begattete Königinnen',      type:'number'},
+             {id:'confirmed',label:'Alle bestätigt',          type:'checkbox'},
+             {id:'notes',   label:'Notizen',                  type:'textarea'}],
+  '18_21': [{id:'mated',   label:'Begattete Königinnen',      type:'number'},
+             {id:'notes',   label:'Notizen',                  type:'textarea'}],
+  '23_27': [{id:'laying',  label:'Legebeginn bestätigt',      type:'checkbox'},
+             {id:'success', label:'Erfolgreiche Königinnen',  type:'number'},
+             {id:'notes',   label:'Notizen',                  type:'textarea'}],
+  '25_28': [{id:'laying',  label:'Legebeginn bestätigt',      type:'checkbox'},
+             {id:'success', label:'Erfolgreiche Königinnen',  type:'number'},
+             {id:'notes',   label:'Notizen',                  type:'textarea'}],
+  '37_41': [{id:'brood',   label:'Brutbild',                  type:'select',
+              options:['sehr gut','gut','ausreichend','mangelhaft']},
+             {id:'released',label:'Abgegebene Königinnen',    type:'number'},
+             {id:'notes',   label:'Notizen',                  type:'textarea'}],
+};
+
+function stepKey(s) {
+  return Array.isArray(s.day) ? s.day.join('_') : String(s.day);
+}
+
 // ── State ─────────────────────────────────────────────────
 let fixType = 'umlarv';
 let selMethod = 'absperrgitter';
@@ -447,6 +521,12 @@ function calculate() {
   curRound = {
     id: (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)),
     name, method: selMethod, fixType, fixDate: dv,
+    queen: {
+      origin: document.getElementById('f-q-origin').value.trim(),
+      year:   document.getElementById('f-q-year').value.trim(),
+      number: document.getElementById('f-q-num').value.trim(),
+    },
+    stepData: {},
     createdAt: new Date().toISOString(), _synced: false, _saved: false,
   };
   tlFromList = false;
@@ -461,15 +541,24 @@ function showTL(round, fromList) {
   const umlarv = steps.find(s=>s.day===0)?.sd || round.fixDate;
 
   document.getElementById('tl-name').textContent = round.name;
-  document.getElementById('tl-meta').textContent = `${m.icon} ${m.name} · Umlarvdatum: ${fmt(umlarv)}`;
+  let metaTxt = `${m.icon} ${m.name} · Umlarvdatum: ${fmt(umlarv)}`;
+  document.getElementById('tl-meta').textContent = metaTxt;
+  // Queen strip
+  const q = round.queen||{};
+  const qParts = [q.origin, q.year, q.number].filter(Boolean);
+  let qStrip = document.getElementById('tl-queen');
+  if(!qStrip){qStrip=document.createElement('div');qStrip.id='tl-queen';qStrip.className='queen-strip';document.getElementById('tl-meta').after(qStrip);}
+  qStrip.innerHTML = qParts.length ? `👑 Zuchtmutter: <span>${qParts.join(' · ')}</span>` : '';
 
   const saved = getLocal().find(r=>r.id===round.id);
   const sb = document.getElementById('tl-save-btn');
   if(saved) { sb.textContent='✓ Gespeichert'; sb.disabled=true; }
   else { sb.textContent='💾 Speichern'; sb.disabled=false; }
 
+  renderStats(round);
   const con = document.getElementById('tl-steps'); con.innerHTML='';
   let lastPhase='';
+  const sd = round.stepData||{};
   steps.forEach((s, i) => {
     let phase='';
     if(s.type==='prep') phase='— Vorbereitung —';
@@ -482,19 +571,24 @@ function showTL(round, fromList) {
     }
     const b=badge(s.sd, s.type); const ic=itmCls(s.sd, s.type);
     const eStr = s.ed ? ` – ${fmtS(s.ed)}` : '';
+    const sk = stepKey(s);
+    const sf = STEP_FORMS[sk];
+    const saved = sd[sk]||{};
+    const hasSaved = sf && Object.keys(saved).some(k=>saved[k]!==''&&saved[k]!==null&&saved[k]!==undefined);
     const itm = document.createElement('div');
     itm.className = `step-item ${ic}`;
     itm.innerHTML = `
       <div class="step-head" onclick="tog(${i})">
         <div class="si">${s.icon}</div>
         <div class="step-info">
-          <div class="step-label">${s.label}</div>
+          <div class="step-label">${s.label}${hasSaved?'<span style="color:var(--green);font-size:10px;margin-left:6px">● Daten</span>':''}</div>
           <div class="step-date">${fmt(s.sd)}${eStr} · ${s.dl}</div>
         </div>
         <div class="sbadge ${b.cls}">${b.txt}</div>
       </div>
       <div class="step-detail" id="det-${i}">
-        ${s.info}
+        <div style="line-height:1.5">${s.info}</div>
+        ${sf ? renderStepForm(sk, sf, saved, round.id, i) : ''}
         <div class="step-detail-ft">
           <button class="btn-sm ics" onclick="expStep(${i})">📅 In Kalender</button>
         </div>
@@ -506,6 +600,106 @@ function showTL(round, fromList) {
 
 function tog(i) { document.getElementById('det-'+i).classList.toggle('open'); }
 function tlBack() { tlFromList ? showScreen('list') : showScreen('new'); }
+
+// ── Step form rendering ────────────────────────────────────
+function renderStepForm(sk, fields, saved, roundId, stepIdx) {
+  const fid = `sf-${stepIdx}`;
+  let html = `<div class="step-form" id="${fid}">`;
+  fields.forEach(f => {
+    const val = saved[f.id] ?? '';
+    if(f.type==='textarea') {
+      html += `<span class="sf-label">${f.label}</span><textarea id="${fid}-${f.id}" rows="2">${val}</textarea>`;
+    } else if(f.type==='checkbox') {
+      html += `<label class="ck-row"><input type="checkbox" id="${fid}-${f.id}" ${val?'checked':''}><span class="ck-lbl">${f.label}</span></label>`;
+    } else if(f.type==='select') {
+      const opts = (f.options||[]).map(o=>`<option ${val===o?'selected':''}>${o}</option>`).join('');
+      html += `<span class="sf-label">${f.label}</span><select id="${fid}-${f.id}"><option value="">– wählen –</option>${opts}</select>`;
+    } else {
+      html += `<span class="sf-label">${f.label}</span><input type="number" id="${fid}-${f.id}" value="${val}" inputmode="numeric" min="0">`;
+    }
+  });
+  const rid = roundId ? `'${roundId}'` : 'null';
+  html += `<div class="save-row"><button class="btn-sm grn" onclick="saveStepForm('${sk}',${stepIdx},'${fid}',${rid})">💾 Speichern</button></div>`;
+  html += `</div>`;
+  return html;
+}
+
+function saveStepForm(sk, stepIdx, fid, roundId) {
+  const fields = STEP_FORMS[sk]; if(!fields) return;
+  const data = {};
+  fields.forEach(f => {
+    const el = document.getElementById(`${fid}-${f.id}`);
+    if(!el) return;
+    if(f.type==='checkbox') data[f.id] = el.checked;
+    else data[f.id] = el.value;
+  });
+  if(!roundId || roundId==='null') {
+    // round not saved yet — store in curRound.stepData
+    if(curRound) { curRound.stepData = {...(curRound.stepData||{}), [sk]:data}; }
+    toast('Daten gespeichert (nach Speichern der Runde)');
+  } else {
+    saveStepData(roundId, sk, data);
+  }
+  // Mark indicator
+  const head = document.querySelector(`#det-${stepIdx}`)?.previousElementSibling;
+  if(head) {
+    const lbl = head.querySelector('.step-label');
+    if(lbl && !lbl.querySelector('span')) lbl.insertAdjacentHTML('beforeend','<span style="color:var(--green);font-size:10px;margin-left:6px">● Daten</span>');
+  }
+  renderStats(curRound);
+}
+
+// ── Stats card ────────────────────────────────────────────
+function renderStats(round) {
+  const con = document.getElementById('tl-stats'); if(!con) return;
+  const sd = round.stepData||{};
+  function sv(key, field) {
+    const v = (sd[key]||{})[field];
+    return (v !== undefined && v !== '' && v !== null) ? v : null;
+  }
+  const larvae   = sv('0','larvae');
+  const accepted = sv('1','accepted');
+  const moved    = sv('5','moved') ?? sv('12','moved');
+  const hatched  = sv('13','hatched');
+  const released = sv('37_41','released');
+
+  function stat(val, lbl) {
+    const v = val !== null ? String(val) : '–';
+    const cls = val !== null ? '' : 'na';
+    return `<div class="stat-item"><div class="stat-val ${cls}">${v}</div><div class="stat-lbl">${lbl}</div></div>`;
+  }
+  const arr = `<div class="stat-arr">›</div>`;
+  const q = round.queen||{};
+  const qParts = [q.origin, q.year&&`J.${q.year}`, q.number].filter(Boolean).join(' · ');
+
+  con.innerHTML = `<div class="stat-card">
+    <div class="stat-card-title">📊 Statistik${qParts?` · <span style="color:var(--muted);font-weight:400">${qParts}</span>`:''}</div>
+    <div class="stat-row">
+      ${stat(larvae,'Larven')}${arr}
+      ${stat(accepted,'Angenommen')}${arr}
+      ${stat(moved,'Verschult')}${arr}
+      ${stat(hatched,'Geschlüpft')}${arr}
+      ${stat(released,'Abgegeben')}
+    </div>
+  </div>`;
+}
+
+// ── Update / save step data ───────────────────────────────
+function saveStepData(roundId, sk, data) {
+  const rounds = getLocal().map(r => {
+    if(r.id !== roundId) return r;
+    return {...r, stepData:{...(r.stepData||{}), [sk]:data}, _synced:false};
+  });
+  localStorage.setItem(LS_KEY, JSON.stringify(rounds));
+  if(curRound && curRound.id === roundId) curRound.stepData = {...(curRound.stepData||{}), [sk]:data};
+  renderStats(curRound||{stepData:{}});
+  toast('Gespeichert ✓'); syncPending();
+}
+
+function updateRound(id, updates) {
+  const rounds = getLocal().map(r => r.id===id ? {...r, ...updates, _synced:false} : r);
+  localStorage.setItem(LS_KEY, JSON.stringify(rounds));
+}
 
 // ── Save / Delete ─────────────────────────────────────────
 function saveRound() {
