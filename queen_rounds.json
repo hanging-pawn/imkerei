@@ -25,7 +25,23 @@
       "createdAt": "2026-05-16T06:44:38.289Z",
       "_synced": false,
       "_saved": true
+    },
+    {
+      "id": "db0045b8-5dd2-4183-8a39-4d3108ec8c45",
+      "name": "Pilot- eigene mutter",
+      "method": "starter_finisher",
+      "fixType": "umlarv",
+      "fixDate": "2026-05-10",
+      "queen": {
+        "origin": "Eigene",
+        "year": "2025",
+        "number": ""
+      },
+      "stepData": {},
+      "createdAt": "2026-05-17T15:05:20.671Z",
+      "_synced": false,
+      "_saved": true
     }
   ],
-  "lastUpdated": "2026-05-16T06:45:06.016Z"
+  "lastUpdated": "2026-05-17T15:05:50.707Z"
 }
