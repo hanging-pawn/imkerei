@@ -11,7 +11,22 @@
       },
       "aktiv": true,
       "erstellt": "2026-05-30",
-      "kontrollen": []
+      "kontrollen": [
+        {
+          "id": "k_98f9f9b8",
+          "datum": "2026-05-30",
+          "koenigin_gesehen": true,
+          "brutstadium": "offen",
+          "volkstaerke": 7,
+          "futterzustand": null,
+          "schwarmstimmung": null,
+          "weiselzellen": 0,
+          "notiz": "Frische Eier",
+          "diktat_original": "O. k. Test Doch bei Durchsicht beim Volk Königin gesehen Brut auf sieben war Frische Eier",
+          "erfassung": "diktat_ki",
+          "erfasst_am": "2026-05-30T19:24:37.670Z"
+        }
+      ]
     }
   ],
   "standorte": [
@@ -162,5 +177,5 @@
   "kosten": [],
   "buchhaltung": [],
   "koeniginnen": [],
-  "lastSync": "2026-05-30T19:23:25.968Z"
+  "lastSync": "2026-05-30T19:24:37.672Z"
 }
