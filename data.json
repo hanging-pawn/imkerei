@@ -1,9 +1,9 @@
 {
   "voelker": [
     {
-      "id": "v_ca00cf0d",
-      "name": "W1",
-      "standort_id": "st_7a1ca7b7",
+      "id": "v_a29a8384",
+      "name": "Testvolk",
+      "standort_id": "st_2b38ff10",
       "beutensystem": "Dadant",
       "koenigin": {
         "jahrgang": 2026,
@@ -16,16 +16,151 @@
   ],
   "standorte": [
     {
-      "id": "st_7a1ca7b7",
+      "id": "st_2b38ff10",
       "name": "Bronschofen",
-      "beschreibung": "Bio-Betrieb mit Apfelfeld",
+      "beschreibung": "",
       "aktiv": true,
       "erstellt": "2026-05-30"
     }
   ],
   "varroa": [],
   "ernten": [],
-  "aufgaben": [],
+  "aufgaben": [
+    {
+      "id": "saison_1_0",
+      "typ": "saison",
+      "monat": 1,
+      "titel": "Oxalsäure-Behandlung (brutfrei)",
+      "kategorie": "Behandlung",
+      "volkId": null,
+      "prioritaet": "normal",
+      "erledigt": false,
+      "erledigtAm": null,
+      "createdAt": "2026-05-30T19:22:48.509Z"
+    },
+    {
+      "id": "saison_2_1",
+      "typ": "saison",
+      "monat": 2,
+      "titel": "Futtervorrat prüfen",
+      "kategorie": "Kontrolle",
+      "volkId": null,
+      "prioritaet": "normal",
+      "erledigt": false,
+      "erledigtAm": null,
+      "createdAt": "2026-05-30T19:22:48.509Z"
+    },
+    {
+      "id": "saison_3_2",
+      "typ": "saison",
+      "monat": 3,
+      "titel": "Erste Durchsicht",
+      "kategorie": "Kontrolle",
+      "volkId": null,
+      "prioritaet": "normal",
+      "erledigt": false,
+      "erledigtAm": null,
+      "createdAt": "2026-05-30T19:22:48.509Z"
+    },
+    {
+      "id": "saison_4_3",
+      "typ": "saison",
+      "monat": 4,
+      "titel": "Schwarmkontrolle beginnen",
+      "kategorie": "Schwarm",
+      "volkId": null,
+      "prioritaet": "normal",
+      "erledigt": false,
+      "erledigtAm": null,
+      "createdAt": "2026-05-30T19:22:48.509Z"
+    },
+    {
+      "id": "saison_5_4",
+      "typ": "saison",
+      "monat": 5,
+      "titel": "Schleudersaison Frühtracht",
+      "kategorie": "Ernte",
+      "volkId": null,
+      "prioritaet": "normal",
+      "erledigt": false,
+      "erledigtAm": null,
+      "createdAt": "2026-05-30T19:22:48.509Z"
+    },
+    {
+      "id": "saison_6_5",
+      "typ": "saison",
+      "monat": 6,
+      "titel": "Schleudersaison Frühtracht",
+      "kategorie": "Ernte",
+      "volkId": null,
+      "prioritaet": "normal",
+      "erledigt": false,
+      "erledigtAm": null,
+      "createdAt": "2026-05-30T19:22:48.509Z"
+    },
+    {
+      "id": "saison_7_6",
+      "typ": "saison",
+      "monat": 7,
+      "titel": "Varroabehandlung vorbereiten",
+      "kategorie": "Behandlung",
+      "volkId": null,
+      "prioritaet": "normal",
+      "erledigt": false,
+      "erledigtAm": null,
+      "createdAt": "2026-05-30T19:22:48.509Z"
+    },
+    {
+      "id": "saison_8_7",
+      "typ": "saison",
+      "monat": 8,
+      "titel": "Ameisensäure-Behandlung",
+      "kategorie": "Behandlung",
+      "volkId": null,
+      "prioritaet": "normal",
+      "erledigt": false,
+      "erledigtAm": null,
+      "createdAt": "2026-05-30T19:22:48.509Z"
+    },
+    {
+      "id": "saison_9_8",
+      "typ": "saison",
+      "monat": 9,
+      "titel": "Einwinterungsfutter",
+      "kategorie": "Futter",
+      "volkId": null,
+      "prioritaet": "normal",
+      "erledigt": false,
+      "erledigtAm": null,
+      "createdAt": "2026-05-30T19:22:48.509Z"
+    },
+    {
+      "id": "saison_10_9",
+      "typ": "saison",
+      "monat": 10,
+      "titel": "Varroakontrolle Wintervolk",
+      "kategorie": "Kontrolle",
+      "volkId": null,
+      "prioritaet": "normal",
+      "erledigt": false,
+      "erledigtAm": null,
+      "createdAt": "2026-05-30T19:22:48.509Z"
+    },
+    {
+      "id": "saison_12_10",
+      "typ": "saison",
+      "monat": 12,
+      "titel": "Oxalsäure planen",
+      "kategorie": "Behandlung",
+      "volkId": null,
+      "prioritaet": "normal",
+      "erledigt": false,
+      "erledigtAm": null,
+      "createdAt": "2026-05-30T19:22:48.509Z"
+    }
+  ],
   "kosten": [],
-  "lastSync": "2026-05-30T04:56:57.582Z"
+  "buchhaltung": [],
+  "koeniginnen": [],
+  "lastSync": "2026-05-30T19:23:25.968Z"
 }
