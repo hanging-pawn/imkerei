@@ -1,0 +1,2453 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Imkerei">
+<meta name="theme-color" content="#1E293B">
+<link rel="manifest" href="manifest.json">
+<title>🍯 ImkereiApp</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --amber:#D97706;--amber-soft:#FEF3C7;--amber-dark:#92400E;
+  --green:#065F46;--green-light:#D1FAE5;
+  --red:#991B1B;--red-light:#FEE2E2;
+  --blue:#1E40AF;--blue-light:#DBEAFE;
+  --yellow:#F59E0B;
+  --charcoal:#1E293B;--charcoal2:#334155;
+  --muted:#94A3B8;--bg:#F1F5F9;--card:#FFFFFF;--border:#E2E8F0;
+  --text:#0F172A;--text2:#475569;
+  --ok:#10B981;--warn:#F59E0B;--crit:#EF4444;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);overscroll-behavior:none}
+
+/* ── Layout ── */
+#app{display:flex;flex-direction:column;height:100%}
+.hdr{background:var(--charcoal);padding:calc(var(--safe-top) + 14px) 16px 12px;flex-shrink:0;z-index:20}
+.hdr-row{display:flex;align-items:center;justify-content:space-between}
+.hdr h1{color:#fff;font-size:17px;font-weight:700;letter-spacing:-.3px}
+.sync-badge{font-size:11px;font-weight:600;border-radius:20px;padding:3px 9px;transition:all .3s}
+.sync-badge.ok{color:#6EE7B7}.sync-badge.pending{color:#FCD34D}.sync-badge.syncing{color:rgba(255,255,255,.45)}.sync-badge.err{color:#FCA5A5}
+
+.page{flex:1;overflow-y:auto;padding:14px 14px calc(80px + var(--safe-bot));-webkit-overflow-scrolling:touch}
+.page.hidden{display:none}
+
+/* ── Bottom Nav ── */
+.nav{position:fixed;bottom:0;left:0;right:0;height:calc(60px + var(--safe-bot));background:var(--charcoal);border-top:1px solid rgba(255,255,255,.1);display:flex;padding-bottom:var(--safe-bot);z-index:30}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;color:rgba(255,255,255,.4);font-size:10px;font-weight:500;cursor:pointer;padding:8px 0;transition:color .15s}
+.nav-btn.active{color:var(--amber)}
+.nav-btn .ico{font-size:20px;line-height:1}
+
+/* ── Cards ── */
+.card{background:var(--card);border-radius:14px;border:1px solid var(--border);overflow:hidden;margin-bottom:12px}
+.card-header{padding:12px 14px 0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text2)}
+.row{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;min-height:50px}
+.row:last-child{border-bottom:none}
+.row label{font-size:14px;color:var(--text2);min-width:110px;flex-shrink:0}
+.row input,.row select,.row textarea{flex:1;border:none;background:none;font-size:16px;color:var(--text);text-align:right;outline:none;font-family:inherit;-webkit-appearance:none;appearance:none}
+.row select{cursor:pointer}.row textarea{text-align:left;resize:none;min-height:44px;padding-top:2px}
+input[type=date]{color:var(--text)}
+
+/* ── Volk-Liste ── */
+.volk-card{background:var(--card);border-radius:14px;border:1px solid var(--border);padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:transform .1s}
+.volk-card:active{transform:scale(.98)}
+.ampel{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.ampel.ok{background:var(--ok)}.ampel.warn{background:var(--warn)}.ampel.crit{background:var(--crit)}.ampel.grey{background:var(--muted)}
+.volk-info{flex:1;min-width:0}
+.volk-name{font-size:15px;font-weight:600;color:var(--text)}
+.volk-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.volk-arrow{color:var(--muted);font-size:16px}
+
+/* ── Diktat-Button ── */
+.diktat-wrap{display:flex;justify-content:center;padding:16px 0 8px}
+.diktat-btn{width:80px;height:80px;border-radius:50%;border:none;background:var(--amber);color:#fff;font-size:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(217,119,6,.4);transition:transform .15s,background .15s}
+.diktat-btn:active{transform:scale(.92)}
+.diktat-btn.recording{background:var(--crit);animation:pulse 1s infinite}
+.diktat-lbl{text-align:center;font-size:12px;color:var(--muted);margin-top:6px}
+@keyframes pulse{0%,100%{box-shadow:0 4px 20px rgba(239,68,68,.4)}50%{box-shadow:0 4px 30px rgba(239,68,68,.7)}}
+
+/* ── Diktat-Overlay ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+.overlay.hidden{display:none}
+.overlay-sheet{background:var(--card);border-radius:20px 20px 0 0;padding:20px 18px calc(20px + var(--safe-bot));width:100%;max-height:85vh;overflow-y:auto}
+.overlay-title{font-size:16px;font-weight:700;margin-bottom:4px;color:var(--text)}
+.overlay-sub{font-size:13px;color:var(--muted);margin-bottom:16px}
+.transcript-box{background:var(--bg);border-radius:10px;padding:12px;min-height:60px;font-size:14px;color:var(--text2);margin-bottom:14px;line-height:1.5}
+.extracted-fields{margin-bottom:14px}
+.field-pill{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--green-light);border-radius:8px;margin-bottom:6px;font-size:13px}
+.field-pill .fname{font-weight:600;color:var(--green);min-width:110px}
+.field-pill .fval{color:var(--text)}
+.field-pill.unclear{background:#FEF3C7}
+.field-pill.unclear .fname{color:var(--amber-dark)}
+
+/* ── Buttons ── */
+.btn{padding:14px 20px;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:transform .1s,opacity .15s;width:100%;margin-bottom:8px}
+.btn:active{transform:scale(.98)}.btn:disabled{opacity:.4}
+.btn.primary{background:var(--amber);color:#fff}
+.btn.secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.btn.danger{background:var(--red-light);color:var(--red)}
+.btn.green{background:var(--green);color:#fff}
+.btn.small{padding:9px 16px;font-size:13px;width:auto;margin-bottom:0}
+
+/* ── Status Badges ── */
+.badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge.ok{background:var(--green-light);color:var(--green)}
+.badge.warn{background:#FEF3C7;color:var(--amber-dark)}
+.badge.crit{background:var(--red-light);color:var(--red)}
+
+/* ── Kontrolle-Liste ── */
+.kontrolle-item{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:12px 14px;margin-bottom:8px}
+.ki-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.ki-datum{font-size:13px;font-weight:600;color:var(--text)}
+.ki-body{font-size:13px;color:var(--text2);line-height:1.5}
+
+/* ── Setup / Onboarding ── */
+.setup-card{background:var(--charcoal2);border-radius:14px;padding:16px;margin-bottom:12px}
+.setup-card h2{color:#fff;font-size:14px;font-weight:600;margin-bottom:12px}
+.setup-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.setup-row label{font-size:13px;color:rgba(255,255,255,.7);min-width:110px;flex-shrink:0}
+.setup-row input{flex:1;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px;color:#fff;font-size:14px;outline:none;font-family:inherit}
+.setup-row input::placeholder{color:rgba(255,255,255,.3)}
+
+/* ── Leer-Zustand ── */
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state .ei{font-size:48px;margin-bottom:12px}
+.empty-state p{font-size:14px;line-height:1.5}
+
+/* ── Toast ── */
+.toast{position:fixed;top:calc(var(--safe-top) + 60px);left:50%;transform:translateX(-50%);background:var(--charcoal);color:#fff;padding:9px 20px;border-radius:30px;font-size:14px;font-weight:500;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;z-index:200}
+.toast.on{opacity:1}
+
+/* ── Sektion-Titel ── */
+.section-title{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px}
+.section-title:first-child{margin-top:0}
+
+/* ── Varroa ── */
+.varroa-rate{font-size:32px;font-weight:800;text-align:center;margin:8px 0}
+.varroa-rate.ok{color:var(--ok)}.varroa-rate.warn{color:var(--warn)}.varroa-rate.crit{color:var(--crit)}
+
+/* ── Kalender ── */
+.kat-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.kat-Behandlung{background:#FEE2E2;color:#991B1B}
+.kat-Kontrolle{background:var(--blue-light);color:var(--blue)}
+.kat-Schwarm{background:#FEF3C7;color:var(--amber-dark)}
+.kat-Ernte{background:var(--green-light);color:var(--green)}
+.kat-Futter{background:#F3E8FF;color:#6B21A8}
+.kat-Sonstige{background:var(--bg);color:var(--text2);border:1px solid var(--border)}
+
+.aufgabe-item{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:11px 13px;margin-bottom:7px;display:flex;align-items:flex-start;gap:10px;transition:opacity .2s}
+.aufgabe-item.erledigt{opacity:.45}
+.aufgabe-check{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;flex-shrink:0;background:var(--bg);transition:all .15s;margin-top:1px}
+.aufgabe-check.done{background:var(--ok);border-color:var(--ok);color:#fff}
+.aufgabe-body{flex:1;min-width:0}
+.aufgabe-titel{font-size:14px;font-weight:500;color:var(--text);line-height:1.4}
+.aufgabe-sub{font-size:12px;color:var(--muted);margin-top:3px;display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+.aufgabe-del{font-size:16px;color:var(--muted);cursor:pointer;padding:0 2px;flex-shrink:0}
+
+.filter-bar{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.filter-bar::-webkit-scrollbar{display:none}
+.filter-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:var(--card);color:var(--text2);white-space:nowrap;cursor:pointer;transition:all .15s;flex-shrink:0}
+.filter-chip.active{background:var(--amber);border-color:var(--amber);color:#fff}
+
+.notif-banner{background:var(--amber-soft);border:1px solid var(--yellow);border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--amber-dark);display:flex;align-items:center;justify-content:space-between;gap:8px}
+
+/* 7 nav-btn → slightly compact */
+.nav-btn{font-size:9px}
+.nav-btn .ico{font-size:17px}
+
+/* ── Coming soon ── */
+.coming-soon{text-align:center;padding:48px 20px;color:var(--muted)}
+.coming-soon .cs-ico{font-size:52px;margin-bottom:16px}
+.coming-soon h3{font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px}
+.coming-soon p{font-size:13px;line-height:1.5}
+
+/* ── Buchhaltung ── */
+.bilanz-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.bilanz-cell{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:12px 10px;text-align:center}
+.bilanz-cell .bl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:4px}
+.bilanz-cell .bv{font-size:15px;font-weight:700}
+.bv.ein{color:var(--green)}.bv.aus{color:var(--red)}.bv.pos{color:var(--green)}.bv.neg{color:var(--red)}.bv.zero{color:var(--muted)}
+.buchung-item{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:11px 13px;margin-bottom:7px;display:flex;align-items:center;gap:10px}
+.buchung-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.buchung-dot.einnahme{background:var(--ok)}.buchung-dot.ausgabe{background:var(--red)}
+.buchung-info{flex:1;min-width:0}
+.buchung-main{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.buchung-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.buchung-betrag{font-size:14px;font-weight:600;flex-shrink:0}
+.buchung-betrag.einnahme{color:var(--green)}.buchung-betrag.ausgabe{color:var(--red)}
+
+.off{display:none!important}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-row">
+      <h1 id="page-title">🍯 Imkerei</h1>
+      <div class="sync-badge ok" id="sync-badge">✓ sync</div>
+    </div>
+  </div>
+
+  <!-- PAGES -->
+
+  <!-- 1: VÖLKER -->
+  <div class="page" id="page-voelker">
+    <div id="setup-section"></div>
+    <div class="section-title">Völkerübersicht</div>
+    <div id="voelker-liste"></div>
+    <button class="btn primary" onclick="showNeuesVolk()">+ Neues Volk anlegen</button>
+  </div>
+
+  <!-- 2: DIKTAT / KONTROLLE (wird dynamisch gefüllt) -->
+  <div class="page hidden" id="page-kontrolle">
+    <button class="btn secondary" style="margin-bottom:14px" onclick="goBack()">← Zurück</button>
+    <div id="kontrolle-content"></div>
+  </div>
+
+  <!-- 3: VARROA -->
+  <div class="page hidden" id="page-varroa">
+    <div class="coming-soon">
+      <div class="cs-ico">🦠</div>
+      <h3>Varroa-Kontrolle</h3>
+      <p>Befallsmessungen und Behandlungen.<br>Kommt im nächsten Update.</p>
+      <br>
+      <button class="btn secondary small" onclick="showVarroaForm()">Messung erfassen (Beta)</button>
+    </div>
+    <div id="varroa-content"></div>
+  </div>
+
+  <!-- 4: ERNTE -->
+  <div class="page hidden" id="page-ernte">
+    <div class="diktat-wrap">
+      <div>
+        <button class="diktat-btn" onclick="startDiktat('ernte')">🎙️</button>
+        <div class="diktat-lbl">Ernte per Diktat</div>
+      </div>
+    </div>
+    <div class="section-title">Ernte erfassen</div>
+    <div class="card">
+      <div class="row"><label>Datum</label><input type="date" id="e-datum" style="font-size:16px"></div>
+      <div class="row"><label>Volk</label>
+        <select id="e-volk" style="font-size:16px;text-align:right">
+          <option value="">— wählen —</option>
+        </select>
+      </div>
+      <div class="row"><label>Tracht</label>
+        <select id="e-tracht" style="font-size:16px;text-align:right">
+          <option value="">— wählen —</option>
+          <option>Raps</option><option>Akazie</option><option>Wald</option><option>Sommer</option><option>Sonstiges</option>
+        </select>
+      </div>
+      <div class="row"><label>Zargen</label><input type="number" id="e-zargen" placeholder="0" min="0" inputmode="decimal" style="font-size:16px;text-align:right"></div>
+      <div class="row"><label>Gewicht brutto kg</label><input type="number" id="e-brutto" placeholder="0.0" min="0" step="0.1" inputmode="decimal" style="font-size:16px;text-align:right"></div>
+      <div class="row"><label>Gewicht netto kg</label><input type="number" id="e-netto" placeholder="0.0" min="0" step="0.1" inputmode="decimal" style="font-size:16px;text-align:right"></div>
+      <div class="row"><label>Wassergehalt %</label><input type="number" id="e-wasser" placeholder="0.0" min="0" max="25" step="0.1" inputmode="decimal" style="font-size:16px;text-align:right"></div>
+      <div class="row"><label>Farbe</label>
+        <select id="e-farbe" style="font-size:16px;text-align:right">
+          <option value="">— wählen —</option>
+          <option>hell</option><option>mittel</option><option>dunkel</option>
+        </select>
+      </div>
+      <div class="row"><label>Notiz</label><textarea id="e-notiz" placeholder="Beobachtungen…" style="font-size:16px"></textarea></div>
+    </div>
+    <button class="btn primary" onclick="saveErnte()">Ernte speichern</button>
+    <div class="section-title">Letzte Ernten</div>
+    <div id="ernten-liste"></div>
+  </div>
+
+  <!-- 5: BUCHHALTUNG -->
+  <div class="page hidden" id="page-buchhaltung">
+    <div class="diktat-wrap">
+      <div>
+        <button class="diktat-btn" onclick="startDiktat('buchhaltung')">🎙️</button>
+        <div class="diktat-lbl">Buchung per Diktat</div>
+      </div>
+    </div>
+
+    <!-- Jahresbilanz -->
+    <div class="section-title">Jahresbilanz <span id="bilanz-jahr"></span></div>
+    <div class="bilanz-grid">
+      <div class="bilanz-cell"><div class="bl">Einnahmen</div><div class="bv ein" id="b-ein">—</div></div>
+      <div class="bilanz-cell"><div class="bl">Ausgaben</div><div class="bv aus" id="b-aus">—</div></div>
+      <div class="bilanz-cell"><div class="bl">Saldo</div><div class="bv zero" id="b-sal">—</div></div>
+    </div>
+    <div id="b-kosten-kg" style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px"></div>
+
+    <!-- Formular -->
+    <div class="section-title">Buchung erfassen</div>
+    <div class="card">
+      <div class="row">
+        <label>Typ</label>
+        <select id="b-typ" style="font-size:16px;text-align:right" onchange="updateBuchungKategorien()">
+          <option value="ausgabe">Ausgabe</option>
+          <option value="einnahme">Einnahme</option>
+        </select>
+      </div>
+      <div class="row"><label>Datum</label><input type="date" id="b-datum" style="font-size:16px"></div>
+      <div class="row">
+        <label>Kategorie</label>
+        <select id="b-kategorie" style="font-size:16px;text-align:right"></select>
+      </div>
+      <div class="row"><label>Produkt / Beschreibung</label><input type="text" id="b-produkt" placeholder="z.B. Oxalsäure" style="font-size:16px;text-align:right" autocorrect="off"></div>
+      <div class="row"><label>Menge</label><input type="number" id="b-menge" placeholder="optional" min="0" step="0.1" inputmode="decimal" style="font-size:16px;text-align:right" oninput="calcBuchungBetrag()"></div>
+      <div class="row"><label>Einheit</label><input type="text" id="b-einheit" placeholder="kg / Stk / …" style="font-size:16px;text-align:right" autocorrect="off" autocapitalize="none"></div>
+      <div class="row"><label>Preis / Einheit</label><input type="number" id="b-preis" placeholder="optional" min="0" step="0.01" inputmode="decimal" style="font-size:16px;text-align:right" oninput="calcBuchungBetrag()"></div>
+      <div class="row" style="background:var(--amber-soft)">
+        <label style="font-weight:600;color:var(--amber-dark)">Betrag CHF</label>
+        <input type="number" id="b-betrag" placeholder="0.00" min="0" step="0.5" inputmode="decimal" style="font-size:16px;font-weight:700;color:var(--amber-dark);text-align:right">
+      </div>
+      <div class="row"><label>Notiz</label><textarea id="b-notiz" placeholder="optional" style="font-size:16px"></textarea></div>
+    </div>
+    <button class="btn primary" onclick="saveBuchung()">Buchung speichern</button>
+
+    <div class="section-title">Letzte Buchungen</div>
+    <div id="buchungen-liste"></div>
+  </div>
+
+  <!-- 6: KÖNIGINNENZUCHT -->
+  <div class="page hidden" id="page-koeniginnenzucht">
+    <div class="diktat-wrap">
+      <div>
+        <button class="diktat-btn" onclick="startDiktat('koeniginnenzucht')">🎙️</button>
+        <div class="diktat-lbl">Runde per Diktat</div>
+      </div>
+    </div>
+    <div class="section-title">Zuchtrunden</div>
+    <div id="zucht-liste"></div>
+    <button class="btn primary" onclick="showNeueRunde()">+ Neue Runde anlegen</button>
+  </div>
+
+  <!-- 8: KALENDER -->
+  <div class="page hidden" id="page-kalender">
+    <div class="notif-banner off" id="notif-banner">
+      <span>🔔 Push-Benachrichtigungen aktivieren?</span>
+      <button class="btn primary small" onclick="enableNotifications()">Aktivieren</button>
+    </div>
+    <div class="filter-bar">
+      <div class="filter-chip active" onclick="setKalFilter('alle',this)">Alle</div>
+      <div class="filter-chip" onclick="setKalFilter('offen',this)">Offen</div>
+      <div class="filter-chip" onclick="setKalFilter('1',this)">Jan</div>
+      <div class="filter-chip" onclick="setKalFilter('2',this)">Feb</div>
+      <div class="filter-chip" onclick="setKalFilter('3',this)">Mär</div>
+      <div class="filter-chip" onclick="setKalFilter('4',this)">Apr</div>
+      <div class="filter-chip" onclick="setKalFilter('5',this)">Mai</div>
+      <div class="filter-chip" onclick="setKalFilter('6',this)">Jun</div>
+      <div class="filter-chip" onclick="setKalFilter('7',this)">Jul</div>
+      <div class="filter-chip" onclick="setKalFilter('8',this)">Aug</div>
+      <div class="filter-chip" onclick="setKalFilter('9',this)">Sep</div>
+      <div class="filter-chip" onclick="setKalFilter('10',this)">Okt</div>
+      <div class="filter-chip" onclick="setKalFilter('11',this)">Nov</div>
+      <div class="filter-chip" onclick="setKalFilter('12',this)">Dez</div>
+    </div>
+    <div id="kalender-liste"></div>
+    <div class="section-title">Neue Aufgabe</div>
+    <div class="card">
+      <div class="row"><label>Titel</label><input type="text" id="ak-titel" placeholder="z.B. Schwarmkontrolle" style="font-size:16px;text-align:right" autocorrect="off"></div>
+      <div class="row"><label>Datum</label><input type="date" id="ak-datum" style="font-size:16px"></div>
+      <div class="row"><label>Volk (optional)</label>
+        <select id="ak-volk" style="font-size:16px;text-align:right">
+          <option value="">— alle Völker —</option>
+        </select>
+      </div>
+      <div class="row"><label>Priorität</label>
+        <select id="ak-prio" style="font-size:16px;text-align:right">
+          <option value="normal">Normal</option>
+          <option value="hoch">Hoch ⚠️</option>
+          <option value="niedrig">Niedrig</option>
+        </select>
+      </div>
+      <div class="row"><label>Kategorie</label>
+        <select id="ak-kat" style="font-size:16px;text-align:right">
+          <option>Kontrolle</option>
+          <option>Behandlung</option>
+          <option>Ernte</option>
+          <option>Futter</option>
+          <option>Schwarm</option>
+          <option>Sonstige</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn primary" onclick="saveEigeneAufgabe()">+ Aufgabe speichern</button>
+  </div>
+
+  <!-- 7: EINSTELLUNGEN -->
+  <div class="page hidden" id="page-settings">
+    <div class="section-title">GitHub-Synchronisation</div>
+    <div class="setup-card">
+      <h2>Verbindung einrichten</h2>
+      <div class="setup-row"><label>GitHub-Username</label><input type="text" id="s-ghuser" placeholder="dein-username" autocorrect="off" autocapitalize="none"></div>
+      <div class="setup-row"><label>Repository-Name</label><input type="text" id="s-ghrepo" placeholder="imkerei-daten" autocorrect="off" autocapitalize="none"></div>
+      <div class="setup-row"><label>GitHub-Token</label><input type="password" id="s-ghtoken" placeholder="github_pat_…" autocomplete="off" autocorrect="off" autocapitalize="none"></div>
+    </div>
+    <div class="section-title">KI-Diktat (OpenRouter)</div>
+    <div class="setup-card">
+      <h2>API-Key für Sprachauswertung</h2>
+      <div class="setup-row"><label>OpenRouter API Key</label><input type="password" id="s-apikey" placeholder="sk-or-…" autocomplete="off" autocorrect="off" autocapitalize="none"></div>
+    </div>
+    <div class="section-title">Mein Imkereibetrieb</div>
+    <div class="card">
+      <div class="row"><label>Betriebsname</label><input type="text" id="s-betrieb" placeholder="Imkerei Muster" style="text-align:right"></div>
+      <div class="row"><label>Name</label><input type="text" id="s-name" placeholder="Vorname Nachname" style="text-align:right"></div>
+      <div class="row"><label>Varroa Schwelle (%)</label><input type="number" id="s-varroa-sw" value="2" min="0.5" max="5" step="0.5" inputmode="decimal" style="text-align:right"></div>
+    </div>
+    <button class="btn primary" onclick="saveSettings()">Einstellungen speichern</button>
+    <div class="section-title" style="margin-top:20px">Daten</div>
+    <button class="btn secondary" onclick="exportData()">📤 Daten als JSON exportieren</button>
+    <button class="btn secondary" onclick="importBuchhaltungData()">📥 Buchhaltungsdaten aus data_gl.json importieren</button>
+    <button class="btn secondary" onclick="importQueenRounds()">📥 Zuchtdaten aus queen_rounds.json importieren</button>
+    <button class="btn danger" onclick="confirmClearData()">🗑️ Alle lokalen Daten löschen</button>
+    <br><div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">Version 1.0 MVP · ImkereiApp</div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- BOTTOM NAV -->
+<div class="nav">
+  <button class="nav-btn active" id="nav-voelker" onclick="navTo('voelker')"><div class="ico">🐝</div><span>Völker</span></button>
+  <button class="nav-btn" id="nav-varroa" onclick="navTo('varroa')"><div class="ico">🦠</div><span>Varroa</span></button>
+  <button class="nav-btn" id="nav-ernte" onclick="navTo('ernte')"><div class="ico">🍯</div><span>Ernte</span></button>
+  <button class="nav-btn" id="nav-buchhaltung" onclick="navTo('buchhaltung')"><div class="ico">💰</div><span>Kasse</span></button>
+  <button class="nav-btn" id="nav-koeniginnenzucht" onclick="navTo('koeniginnenzucht')"><div class="ico">👑</div><span>Zucht</span></button>
+  <button class="nav-btn" id="nav-kalender" onclick="navTo('kalender')"><div class="ico">📅</div><span>Kalender</span></button>
+  <button class="nav-btn" id="nav-settings" onclick="navTo('settings')"><div class="ico">⚙️</div><span>Einst.</span></button>
+</div>
+
+<!-- DIKTAT OVERLAY -->
+<div class="overlay hidden" id="diktat-overlay">
+  <div class="overlay-sheet">
+    <div class="overlay-title" id="diktat-title">🎙️ Diktat erfassen</div>
+    <div class="overlay-sub" id="diktat-sub">Tippe auf das Mikrofon und beschreibe was du siehst.</div>
+    <div class="diktat-wrap" id="diktat-mic-wrap">
+      <div>
+        <button class="diktat-btn" id="diktat-mic-btn" onclick="toggleRecording()">🎙️</button>
+        <div class="diktat-lbl" id="diktat-lbl">Tippen zum Aufnehmen</div>
+      </div>
+    </div>
+    <div class="transcript-box" id="transcript-box">Noch keine Aufnahme…</div>
+    <div id="extracted-preview" class="extracted-fields off"></div>
+    <div id="diktat-actions">
+      <button class="btn primary off" id="btn-diktat-ok" onclick="saveDiktat()">✓ Speichern</button>
+      <button class="btn secondary" onclick="closeDiktat()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEUES VOLK OVERLAY -->
+<div class="overlay hidden" id="neues-volk-overlay">
+  <div class="overlay-sheet">
+    <div class="overlay-title">🐝 Neues Volk</div>
+    <div class="card" style="margin-top:12px">
+      <div class="row"><label>Name / Nr.</label><input type="text" id="nv-name" placeholder="Volk 1" style="text-align:right" autocorrect="off"></div>
+      <div class="row"><label>Standort</label><select id="nv-standort"><option value="">— wählen —</option></select></div>
+      <div class="row"><label>Beutensystem</label>
+        <select id="nv-beute">
+          <option>Dadant</option><option>Zander</option><option>DNM</option><option>Langstroth</option><option>Einraumbeute</option>
+        </select>
+      </div>
+      <div class="row"><label>Königin Jahrgang</label><input type="number" id="nv-kj" placeholder="2025" inputmode="numeric" min="2020" max="2030" style="text-align:right"></div>
+      <div class="row"><label>Königin Farbe</label>
+        <select id="nv-kf">
+          <option value="">— wählen —</option>
+          <option>weiss (2021/2026)</option><option>gelb (2022/2027)</option><option>rot (2023/2028)</option>
+          <option>grün (2024/2029)</option><option>blau (2025/2030)</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn primary" onclick="saveNeuesVolk()">Volk anlegen</button>
+    <button class="btn secondary" onclick="closeNeuesVolk()">Abbrechen</button>
+  </div>
+</div>
+
+<!-- NEUER STANDORT OVERLAY -->
+<div class="overlay hidden" id="neuer-standort-overlay">
+  <div class="overlay-sheet">
+    <div class="overlay-title">📍 Neuer Standort</div>
+    <div class="card" style="margin-top:12px">
+      <div class="row"><label>Name</label><input type="text" id="ns-name" placeholder="Garten Casa" style="text-align:right" autocorrect="off"></div>
+      <div class="row"><label>Beschreibung</label><input type="text" id="ns-desc" placeholder="optional" style="text-align:right"></div>
+    </div>
+    <button class="btn primary" onclick="saveNeuerStandort()">Standort anlegen</button>
+    <button class="btn secondary" onclick="document.getElementById('neuer-standort-overlay').classList.add('hidden')">Abbrechen</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- NEUE RUNDE OVERLAY -->
+<div class="overlay hidden" id="neue-runde-overlay">
+  <div class="overlay-sheet">
+    <div class="overlay-title">👑 Neue Zuchtrunde</div>
+    <div class="card" style="margin-top:12px">
+      <div class="row"><label>Name</label><input type="text" id="nr-name" placeholder="Frühjahr 2026" style="font-size:16px;text-align:right" autocorrect="off"></div>
+      <div class="row"><label>Methode</label>
+        <select id="nr-methode" style="font-size:16px;text-align:right">
+          <option value="">— wählen —</option>
+        </select>
+      </div>
+      <div class="row"><label>Umlarvdatum</label><input type="date" id="nr-datum" style="font-size:16px"></div>
+      <div class="row"><label>Larven eingelegt</label><input type="number" id="nr-larven" placeholder="z.B. 20" min="0" inputmode="numeric" style="font-size:16px;text-align:right"></div>
+      <div class="row"><label>Zuchtmutter Volk</label>
+        <select id="nr-zuchtmutter" style="font-size:16px;text-align:right">
+          <option value="">— wählen —</option>
+        </select>
+      </div>
+      <div class="row"><label>Königin Jahrgang</label><input type="number" id="nr-kj" placeholder="2025" inputmode="numeric" style="font-size:16px;text-align:right"></div>
+    </div>
+    <button class="btn primary" onclick="saveNeueRunde()">Runde anlegen</button>
+    <button class="btn secondary" onclick="closeNeueRunde()">Abbrechen</button>
+  </div>
+</div>
+
+<!-- SCHRITT OVERLAY -->
+<div class="overlay hidden" id="schritt-overlay">
+  <div class="overlay-sheet">
+    <div class="overlay-title" id="schritt-overlay-title">Schritt erfassen</div>
+    <div id="schritt-overlay-content"></div>
+    <button class="btn primary" onclick="saveSchritt()">Speichern</button>
+    <button class="btn secondary" onclick="closeSchrittOverlay()">Abbrechen</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// STORAGE KEYS
+// ═══════════════════════════════════════════════════════════════
+const LS = {
+  voelker:      'imk_voelker',
+  standorte:    'imk_standorte',
+  varroa:       'imk_varroa',
+  ernten:       'imk_ernten',
+  aufgaben:     'imk_aufgaben',
+  kosten:       'imk_kosten',
+  buchhaltung:  'imk_buchhaltung',
+  koeniginnen:  'imk_koeniginnen',
+  pending:      'imk_pending',
+  settings:     'imk_settings',
+};
+
+// ═══════════════════════════════════════════════════════════════
+// DIKTAT – MODUL-KONFIGURATION
+// ═══════════════════════════════════════════════════════════════
+const DIKTAT_PROMPTS = {
+  kontrolle: `Du bist ein Imkerei-Assistent. Extrahiere aus dem Diktat eines
+Imkers folgende Felder als JSON:
+{ "volkId": "string|null", "koeniginGesehen": true|false|null,
+  "brutbild": "offen|verdeckelt|leer|gemischt|null",
+  "volksstaerke": 1-10|null, "schwarmstimmung": true|false|null,
+  "futterzustand": "gut|mittel|leer|null", "notiz": "string|null" }
+Antworte NUR mit dem JSON-Objekt, keine Erklärungen.
+Imker-Fachbegriffe: "Weiselzelle"/"Schwarmzelle" → schwarmstimmung:true,
+"brutfrei" → brutbild:"leer", Volksstärke-Zahlen direkt übernehmen.`,
+
+  ernte: `Du bist ein Imkerei-Assistent. Extrahiere aus dem Diktat eines
+Imkers folgende Ernte-Felder als JSON:
+{ "datum": "YYYY-MM-DD|null", "volkId": "string|null",
+  "standort": "string|null", "tracht": "Raps|Akazie|Wald|Sommer|Sonstiges|null",
+  "zargen": 1-20|null, "gewichtBrutto": number|null,
+  "gewichtNetto": number|null, "wassergehalt": number|null,
+  "farbe": "hell|mittel|dunkel|null", "notiz": "string|null" }
+Antworte NUR mit dem JSON-Objekt. Fehlende Felder = null.
+Beispiel: "3 Zargen Akazien, 38 Kilo netto, Wassergehalt 17.2"
+→ { tracht:"Akazie", zargen:3, gewichtNetto:38, wassergehalt:17.2 }`,
+
+  varroa: `Du bist ein Imkerei-Assistent. Extrahiere Varroa-Messung als JSON:
+{ "datum": "YYYY-MM-DD|null", "volkId": "string|null",
+  "methode": "Totenfall|Alkoholwäsche|Puderzucker|null",
+  "milbenAnzahl": number|null, "bienen": number|null, "notiz": "string|null" }
+Antworte NUR mit dem JSON. Berechne die Rate NICHT (wird separat berechnet).
+Beispiel: "Volk 2, Alkoholwäsche, 4 Milben auf 100 Bienen"
+→ { volkId:"2", methode:"Alkoholwäsche", milbenAnzahl:4, bienen:100 }`,
+
+  buchhaltung: `Du bist ein Imkerei-Assistent. Extrahiere Buchungsfelder als JSON:
+{ "datum": "YYYY-MM-DD|null", "typ": "einnahme|ausgabe|null",
+  "kategorie": "Material|Medikamente|Beuten/Zargen|Honigverarbeitung|Fahrtkosten|Kurs/Verein|Honigverkauf|Wachs|Ableger|Sonstiges|null",
+  "produkt": "string|null", "menge": number|null,
+  "einheit": "string|null", "preis": number|null,
+  "betrag": number|null, "notiz": "string|null" }
+Antworte NUR mit dem JSON.
+Beispiel: "Ausgabe, Varroamittel Oxalsäure, 45 Franken"
+→ { typ:"ausgabe", kategorie:"Medikamente", produkt:"Oxalsäure", betrag:45 }`,
+
+  koeniginnenzucht: `Du bist ein Imkerei-Assistent. Extrahiere Zucht-Runden-Daten als JSON:
+{ "name": "string|null", "methode": "Absperrgitter|Sammelableger|Starter/Finisher|Anbrüter|Piana|Cloake|Zwischenableger|Jenter|Brutschrank|Besamung|null",
+  "umlarvDatum": "YYYY-MM-DD|null", "larvenAnzahl": number|null,
+  "zuchtmutterVolkId": "string|null", "zuchtmutterJahrgang": number|null,
+  "notiz": "string|null" }
+Antworte NUR mit dem JSON.
+Beispiel: "Runde Frühjahr 2026, Sammelableger, heute umgelarvet, 14 Larven, Zuchtmutter Volk 3"
+→ { name:"Frühjahr 2026", methode:"Sammelableger", umlarvDatum:"2026-05-30", larvenAnzahl:14, zuchtmutterVolkId:"3" }`,
+};
+
+const DIKTAT_MODULE_LABELS = {
+  kontrolle:        { title: '🎙️ Diktat – Kontrolle',    save: '✓ Kontrolle speichern' },
+  ernte:            { title: '🎙️ Diktat – Ernte',         save: '✓ Ernte speichern' },
+  varroa:           { title: '🎙️ Diktat – Varroa',        save: '✓ Messung speichern' },
+  buchhaltung:      { title: '🎙️ Diktat – Buchung',       save: '✓ Buchung speichern' },
+  koeniginnenzucht: { title: '🎙️ Diktat – Königinnenzucht', save: '✓ Runde speichern' },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════════
+function getSettings() {
+  try { return JSON.parse(localStorage.getItem(LS.settings) || '{}'); } catch { return {}; }
+}
+function saveSettings() {
+  const s = {
+    ghUser:    document.getElementById('s-ghuser').value.trim(),
+    ghRepo:    document.getElementById('s-ghrepo').value.trim(),
+    ghToken:   document.getElementById('s-ghtoken').value.trim(),
+    orApiKey:  document.getElementById('s-apikey').value.trim(),
+    betrieb:   document.getElementById('s-betrieb').value.trim(),
+    name:      document.getElementById('s-name').value.trim(),
+    varroaSW:  parseFloat(document.getElementById('s-varroa-sw').value) || 2.0,
+  };
+  localStorage.setItem(LS.settings, JSON.stringify(s));
+  toast('Einstellungen gespeichert ✓');
+  updateSyncBadge();
+  renderSetupSection();
+}
+function loadSettingsForm() {
+  const s = getSettings();
+  document.getElementById('s-ghuser').value  = s.ghUser  || '';
+  document.getElementById('s-ghrepo').value  = s.ghRepo  || '';
+  document.getElementById('s-ghtoken').value = s.ghToken || '';
+  document.getElementById('s-apikey').value  = s.orApiKey || '';
+  document.getElementById('s-betrieb').value = s.betrieb || '';
+  document.getElementById('s-name').value    = s.name    || '';
+  document.getElementById('s-varroa-sw').value = s.varroaSW || 2.0;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DATA HELPERS
+// ═══════════════════════════════════════════════════════════════
+function getData(key) { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } }
+function setData(key, arr) { localStorage.setItem(key, JSON.stringify(arr)); }
+function uuid() { return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)); }
+function today() { return new Date().toISOString().split('T')[0]; }
+function fmtDate(s) { if (!s) return ''; const [y,m,d] = s.split('-'); return `${d}.${m}.${y}`; }
+function esc(s) { return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+const PAGES = ['voelker','varroa','ernte','buchhaltung','koeniginnenzucht','kalender','settings'];
+const PAGE_TITLES = { voelker:'🐝 Völker', varroa:'🦠 Varroa', ernte:'🍯 Ernte', buchhaltung:'💰 Kasse', koeniginnenzucht:'👑 Zucht', kalender:'📅 Kalender', settings:'⚙️ Einstellungen', kontrolle:'📋 Kontrolle' };
+let currentPage = 'voelker';
+let previousPage = 'voelker';
+
+function navTo(page) {
+  previousPage = currentPage;
+  currentPage = page;
+  PAGES.forEach(p => {
+    document.getElementById('page-'+p).classList.toggle('hidden', p !== page);
+    document.getElementById('nav-'+p)?.classList.toggle('active', p === page);
+  });
+  document.getElementById('page-kontrolle').classList.add('hidden');
+  document.getElementById('page-title').textContent = PAGE_TITLES[page] || '🍯 Imkerei';
+  if (page === 'settings') loadSettingsForm();
+  if (page === 'ernte') { fillErnteVoelkerSelect(); renderErnten(); }
+  if (page === 'buchhaltung') { initBuchungForm(); renderBilanz(); renderBuchungen(); }
+  if (page === 'koeniginnenzucht') { renderRunden(); }
+  if (page === 'kalender') { initSaisonAufgaben(); fillKalenderVoelkerSelect(); renderKalender(); checkNotifBanner(); }
+}
+
+function goBack() {
+  navTo(previousPage);
+  renderVoelker();
+}
+
+function showPage(page) {
+  PAGES.forEach(p => document.getElementById('page-'+p).classList.add('hidden'));
+  document.getElementById('page-kontrolle').classList.add('hidden');
+  document.getElementById('page-'+page).classList.remove('hidden');
+  document.getElementById('page-title').textContent = PAGE_TITLES[page] || '🍯 Imkerei';
+  currentPage = page;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STANDORTE
+// ═══════════════════════════════════════════════════════════════
+function getStandorte() { return getData(LS.standorte); }
+function standortName(id) { const s = getStandorte().find(x=>x.id===id); return s ? s.name : id || '—'; }
+
+function saveNeuerStandort() {
+  const name = document.getElementById('ns-name').value.trim();
+  if (!name) { toast('Bitte Name eingeben'); return; }
+  const st = { id: 'st_'+uuid().slice(0,8), name, beschreibung: document.getElementById('ns-desc').value.trim(), aktiv: true, erstellt: today() };
+  const all = getStandorte();
+  all.push(st);
+  setData(LS.standorte, all);
+  document.getElementById('neuer-standort-overlay').classList.add('hidden');
+  toast(`Standort "${name}" angelegt ✓`);
+  fillStandortSelects();
+}
+
+function fillStandortSelects() {
+  const sts = getStandorte();
+  ['nv-standort'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = '<option value="">— wählen —</option>' +
+      sts.map(s => `<option value="${s.id}"${s.id===cur?' selected':''}>${esc(s.name)}</option>`).join('') +
+      '<option value="__new">+ Neuer Standort</option>';
+    el.onchange = () => { if (el.value === '__new') { el.value = cur; showNeuerStandort(); } };
+  });
+}
+
+function showNeuerStandort() {
+  document.getElementById('ns-name').value = '';
+  document.getElementById('ns-desc').value = '';
+  document.getElementById('neuer-standort-overlay').classList.remove('hidden');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VÖLKER
+// ═══════════════════════════════════════════════════════════════
+function getVoelker() { return getData(LS.voelker); }
+function setVoelker(arr) { setData(LS.voelker, arr); }
+
+function volkStatus(volk) {
+  const ktrls = volk.kontrollen || [];
+  if (!ktrls.length) return 'grey';
+  const last = ktrls[ktrls.length - 1];
+  if (last.schwarmstimmung || last.weiselzellen > 0) return 'warn';
+  if (last.volkstaerke && last.volkstaerke < 4) return 'crit';
+  return 'ok';
+}
+
+function renderVoelker() {
+  const voelker = getVoelker();
+  const el = document.getElementById('voelker-liste');
+  if (!voelker.length) {
+    el.innerHTML = `<div class="empty-state"><div class="ei">🐝</div><p>Noch keine Völker angelegt.<br>Lege dein erstes Volk an um zu starten.</p></div>`;
+    return;
+  }
+  el.innerHTML = voelker.map(v => {
+    const st = volkStatus(v);
+    const lastKtrl = v.kontrollen?.slice(-1)[0];
+    const sub = lastKtrl
+      ? `Letzte Kontrolle: ${fmtDate(lastKtrl.datum)}`
+      : `Standort: ${standortName(v.standort_id)}`;
+    return `<div class="volk-card" onclick="showVolk('${v.id}')">
+      <div class="ampel ${st}"></div>
+      <div class="volk-info">
+        <div class="volk-name">${esc(v.name)}</div>
+        <div class="volk-sub">${esc(sub)}</div>
+      </div>
+      <div class="volk-arrow">›</div>
+    </div>`;
+  }).join('');
+}
+
+function showNeuesVolk() {
+  fillStandortSelects();
+  document.getElementById('nv-name').value = `Volk ${getVoelker().length + 1}`;
+  document.getElementById('nv-kj').value = new Date().getFullYear();
+  document.getElementById('neues-volk-overlay').classList.remove('hidden');
+}
+
+function closeNeuesVolk() { document.getElementById('neues-volk-overlay').classList.add('hidden'); }
+
+function saveNeuesVolk() {
+  const name = document.getElementById('nv-name').value.trim();
+  if (!name) { toast('Bitte Name/Nummer eingeben'); return; }
+  const volk = {
+    id: 'v_' + uuid().slice(0,8),
+    name,
+    standort_id: document.getElementById('nv-standort').value,
+    beutensystem: document.getElementById('nv-beute').value,
+    koenigin: {
+      jahrgang: parseInt(document.getElementById('nv-kj').value) || null,
+      farbe: document.getElementById('nv-kf').value,
+    },
+    aktiv: true,
+    erstellt: today(),
+    kontrollen: [],
+  };
+  const voelker = getVoelker();
+  voelker.push(volk);
+  setVoelker(voelker);
+  closeNeuesVolk();
+  toast(`"${name}" angelegt ✓`);
+  renderVoelker();
+  addPending({ type: 'volk', id: volk.id, action: 'create', data: volk, ts: Date.now() });
+  syncIfOnline();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VOLK DETAIL
+// ═══════════════════════════════════════════════════════════════
+let currentVolkId = null;
+
+function showVolk(volkId) {
+  currentVolkId = volkId;
+  const voelker = getVoelker();
+  const volk = voelker.find(v => v.id === volkId);
+  if (!volk) return;
+  const st = volkStatus(volk);
+  const stBadge = { ok:'ok', warn:'warn', crit:'crit', grey:'' };
+
+  const ktrls = [...(volk.kontrollen || [])].reverse();
+  const ktrlHTML = ktrls.length
+    ? ktrls.map(k => `<div class="kontrolle-item">
+        <div class="ki-header">
+          <span class="ki-datum">${fmtDate(k.datum)}</span>
+          <span class="badge ${stBadge[volkStatus({kontrollen:[k]})] || 'ok'}">${k.koenigin_gesehen ? '👑' : '🔍'} ${k.schwarmstimmung ? '⚠️ Schwarm' : 'OK'}</span>
+        </div>
+        <div class="ki-body">
+          ${k.volkstaerke ? `Stärke: ${k.volkstaerke}/10 · ` : ''}${k.brutstadium || ''}${k.notiz ? `<br><em>${esc(k.notiz)}</em>` : ''}
+          ${k.diktat_original ? `<br><small style="color:var(--muted)">🎙️ "${esc(k.diktat_original)}"</small>` : ''}
+        </div>
+      </div>`)
+      .join('')
+    : '<div class="empty-state" style="padding:20px"><p>Noch keine Kontrollen.</p></div>';
+
+  document.getElementById('kontrolle-content').innerHTML = `
+    <div class="card">
+      <div class="card-header">Volk</div>
+      <div class="row"><label>Name</label><span style="color:var(--text);font-weight:600">${esc(volk.name)}</span></div>
+      <div class="row"><label>Standort</label><span style="color:var(--text2)">${esc(standortName(volk.standort_id))}</span></div>
+      <div class="row"><label>Beute</label><span style="color:var(--text2)">${esc(volk.beutensystem || '—')}</span></div>
+      <div class="row"><label>Königin</label><span style="color:var(--text2)">${volk.koenigin?.jahrgang || '—'} ${volk.koenigin?.farbe ? '('+volk.koenigin.farbe+')' : ''}</span></div>
+    </div>
+    <div class="diktat-wrap">
+      <div>
+        <button class="diktat-btn" id="detail-diktat-btn" onclick="openDiktat('${volkId}', 'kontrolle')">🎙️</button>
+        <div class="diktat-lbl">Kontrolle per Diktat</div>
+      </div>
+    </div>
+    <button class="btn secondary" onclick="openManuelleKontrolle('${volkId}')">✏️ Manuelle Eingabe</button>
+    <div class="section-title">Kontrollhistorie</div>
+    ${ktrlHTML}
+    <div style="margin-top:16px">
+      <button class="btn danger" onclick="confirmDeleteVolk('${volkId}')">Volk löschen</button>
+    </div>
+  `;
+
+  PAGES.forEach(p => document.getElementById('page-'+p).classList.add('hidden'));
+  document.getElementById('page-kontrolle').classList.remove('hidden');
+  document.getElementById('page-title').textContent = `🐝 ${esc(volk.name)}`;
+  previousPage = 'voelker';
+  currentPage = 'kontrolle';
+}
+
+function confirmDeleteVolk(volkId) {
+  if (confirm('Volk wirklich löschen? Alle Daten gehen verloren.')) {
+    const voelker = getVoelker().filter(v => v.id !== volkId);
+    setVoelker(voelker);
+    goBack();
+    toast('Volk gelöscht');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MANUELLE KONTROLLE
+// ═══════════════════════════════════════════════════════════════
+function openManuelleKontrolle(volkId) {
+  currentVolkId = volkId;
+  const voelker = getVoelker();
+  const volk = voelker.find(v => v.id === volkId);
+
+  document.getElementById('kontrolle-content').innerHTML = `
+    <button class="btn secondary" style="margin-bottom:14px" onclick="showVolk('${volkId}')">← Zurück</button>
+    <div class="section-title">Neue Kontrolle – ${esc(volk?.name || '')}</div>
+    <div class="card">
+      <div class="row"><label>Datum</label><input type="date" id="mk-datum" value="${today()}"></div>
+      <div class="row"><label>Königin gesehen</label>
+        <select id="mk-koenigin" style="text-align:right">
+          <option value="">—</option><option value="true">Ja ✓</option><option value="false">Nein ✗</option>
+        </select>
+      </div>
+      <div class="row"><label>Brutstadium</label>
+        <select id="mk-brut" style="text-align:right">
+          <option value="">—</option><option>offen + verdeckelt</option><option>nur offen</option><option>nur verdeckelt</option><option>leer</option>
+        </select>
+      </div>
+      <div class="row"><label>Volksstärke</label>
+        <select id="mk-staerke" style="text-align:right">
+          <option value="">—</option>
+          ${[1,2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}">${n}/10</option>`).join('')}
+        </select>
+      </div>
+      <div class="row"><label>Futterzustand</label>
+        <select id="mk-futter" style="text-align:right">
+          <option value="">—</option><option>gut</option><option>ausreichend</option><option>knapp</option><option>leer</option>
+        </select>
+      </div>
+      <div class="row"><label>Schwarmstimmung</label>
+        <select id="mk-schwarm" style="text-align:right">
+          <option value="">—</option><option value="false">Nein</option><option value="true">Ja ⚠️</option>
+        </select>
+      </div>
+      <div class="row"><label>Weiselzellen</label>
+        <input type="number" id="mk-weisel" placeholder="0" min="0" inputmode="numeric" style="text-align:right">
+      </div>
+      <div class="row"><label>Notiz</label><textarea id="mk-notiz" placeholder="Beobachtungen…"></textarea></div>
+    </div>
+    <button class="btn green" onclick="saveManuelleKontrolle('${volkId}')">Kontrolle speichern</button>
+  `;
+  document.getElementById('page-title').textContent = `✏️ Kontrolle`;
+}
+
+function saveManuelleKontrolle(volkId) {
+  const k = {
+    id: 'k_' + uuid().slice(0,8),
+    datum: document.getElementById('mk-datum').value || today(),
+    koenigin_gesehen: document.getElementById('mk-koenigin').value === 'true',
+    brutstadium: document.getElementById('mk-brut').value,
+    volkstaerke: parseInt(document.getElementById('mk-staerke').value) || null,
+    futterzustand: document.getElementById('mk-futter').value,
+    schwarmstimmung: document.getElementById('mk-schwarm').value === 'true',
+    weiselzellen: parseInt(document.getElementById('mk-weisel').value) || 0,
+    notiz: document.getElementById('mk-notiz').value.trim(),
+    erfassung: 'manuell',
+    erfasst_am: new Date().toISOString(),
+  };
+  saveKontrolle(volkId, k);
+  toast('Kontrolle gespeichert ✓');
+  showVolk(volkId);
+  syncIfOnline();
+}
+
+function saveKontrolle(volkId, kontrolle) {
+  const voelker = getVoelker();
+  const volk = voelker.find(v => v.id === volkId);
+  if (!volk) return;
+  if (!volk.kontrollen) volk.kontrollen = [];
+  volk.kontrollen.push(kontrolle);
+  setVoelker(voelker);
+  addPending({ type: 'kontrolle', volkId, kontrolleId: kontrolle.id, ts: Date.now() });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DIKTAT & KI-EXTRAKTION
+// ═══════════════════════════════════════════════════════════════
+let recognition     = null;
+let isRecording     = false;
+let diktatVolkId    = null;
+let currentDiktatModul = 'kontrolle';
+let diktatState     = 'idle'; // idle | recording | processing | review
+let finalTranscript = '';
+let extractedData   = null;
+
+// ── UI-Zustandsmaschine ──
+function setDiktatState(state) {
+  diktatState = state;
+  const btn  = document.getElementById('diktat-mic-btn');
+  const lbl  = document.getElementById('diktat-lbl');
+  const wrap = document.getElementById('diktat-mic-wrap');
+  const ok   = document.getElementById('btn-diktat-ok');
+  const prev = document.getElementById('extracted-preview');
+
+  switch (state) {
+    case 'idle':
+      wrap.classList.remove('off');
+      btn.className   = 'diktat-btn';
+      btn.textContent = '🎙️';
+      btn.disabled    = false;
+      lbl.textContent = 'Tippen zum Aufnehmen';
+      document.getElementById('transcript-box').textContent = 'Noch keine Aufnahme…';
+      prev.classList.add('off');
+      ok.classList.add('off');
+      break;
+
+    case 'recording':
+      wrap.classList.remove('off');
+      btn.className   = 'diktat-btn recording';
+      btn.textContent = '⏹';
+      btn.disabled    = false;
+      lbl.textContent = '🔴 Läuft… Tippen zum Beenden';
+      prev.classList.add('off');
+      ok.classList.add('off');
+      break;
+
+    case 'processing':
+      wrap.classList.remove('off');
+      btn.className   = 'diktat-btn';
+      btn.textContent = '⏳';
+      btn.disabled    = true;
+      lbl.textContent = 'Wird analysiert…';
+      prev.classList.add('off');
+      ok.classList.add('off');
+      break;
+
+    case 'review':
+      wrap.classList.add('off');   // Mikrofon ausblenden – kein Re-Record
+      ok.classList.remove('off');
+      break;
+  }
+}
+
+function openDiktat(volkId, modul = 'kontrolle') {
+  diktatVolkId       = volkId;
+  currentDiktatModul = modul;
+  finalTranscript    = '';
+  extractedData      = null;
+
+  const ml = DIKTAT_MODULE_LABELS[modul] || DIKTAT_MODULE_LABELS.kontrolle;
+  document.getElementById('diktat-title').textContent  = ml.title;
+  document.getElementById('btn-diktat-ok').textContent = ml.save;
+
+  const volk = getVoelker().find(v => v.id === volkId);
+  document.getElementById('diktat-sub').textContent =
+    volk ? `Volk: ${volk.name} · Aufnahme starten wenn du bereit bist.`
+         : 'Aufnahme starten wenn du bereit bist.';
+
+  setDiktatState('idle');
+  document.getElementById('diktat-overlay').classList.remove('hidden');
+}
+
+function closeDiktat() {
+  isRecording = false;
+  if (recognition) { try { recognition.stop(); } catch {} recognition = null; }
+  document.getElementById('diktat-overlay').classList.add('hidden');
+}
+
+function toggleRecording() {
+  if (diktatState === 'idle')           startRecording();
+  else if (diktatState === 'recording') stopDiktat();
+  // processing / review: Taste ignorieren
+}
+
+function startRecording() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    const text = prompt('Sprachaufnahme nicht unterstützt.\nGib dein Diktat als Text ein:');
+    if (text && text.trim()) { finalTranscript = text.trim(); finalizeRecording(); }
+    return;
+  }
+
+  finalTranscript = '';
+  recognition = new SR();
+  recognition.lang            = 'de-CH';
+  recognition.continuous      = true;   // läuft bis explizit gestoppt
+  recognition.interimResults  = true;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    isRecording = true;
+    setDiktatState('recording');
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript + ' ';
+      else interim = e.results[i][0].transcript;
+    }
+    document.getElementById('transcript-box').textContent =
+      (finalTranscript + interim).trim() || '…';
+  };
+
+  recognition.onend = () => {
+    if (isRecording) {
+      // iOS/Safari bricht continuous-Aufnahme nach Sprachpause ab → keepAlive
+      try { recognition.start(); } catch {
+        isRecording = false;
+        finalizeRecording();
+      }
+    } else {
+      // Bewusst gestoppt über stopDiktat()
+      finalizeRecording();
+    }
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error === 'no-speech') return; // kurze Pause – kein echter Fehler
+    if (e.error === 'not-allowed') {
+      toast('Mikrofon-Zugriff verweigert');
+      isRecording = false;
+      setDiktatState('idle');
+    }
+  };
+
+  recognition.start();
+}
+
+// Beendet Aufnahme bewusst (nur ein Weg – kein Re-Record)
+function stopDiktat() {
+  isRecording = false;          // verhindert keepAlive-Neustart in onend
+  setDiktatState('processing');
+  if (recognition) { try { recognition.stop(); } catch {} }
+  // finalizeRecording() wird asynchron durch recognition.onend ausgelöst
+}
+
+function finalizeRecording() {
+  recognition = null;
+  if (finalTranscript.trim()) {
+    processTranscript(finalTranscript.trim());
+  } else {
+    setDiktatState('idle');
+    toast('Keine Sprache erkannt');
+  }
+}
+
+async function processTranscript(text) {
+  document.getElementById('transcript-box').textContent = text;
+  setDiktatState('processing');
+
+  const s = getSettings();
+  if (!s.orApiKey) {
+    extractedData = { notiz: text, erfassung: 'diktat_rohtext', diktat_original: text };
+    showExtractedPreview(extractedData);
+    setDiktatState('review');
+    toast('Kein API-Key – als Rohnotiz gespeichert');
+    return;
+  }
+
+  try {
+    const extracted = await extractWithClaude(text, s.orApiKey);
+    extractedData = { ...extracted, diktat_original: text, erfassung: 'diktat_ki' };
+    showExtractedPreview(extractedData);
+    setDiktatState('review');
+  } catch (err) {
+    extractedData = { notiz: text, erfassung: 'diktat_rohtext', diktat_original: text };
+    showExtractedPreview(extractedData);
+    setDiktatState('review');
+    toast('KI-Fehler – als Notiz gespeichert');
+    console.error(err);
+  }
+}
+
+const OR_MODEL_PRIMARY  = 'mistralai/mistral-7b-instruct';
+const OR_MODEL_FALLBACK  = 'openrouter/auto';
+const OR_ENDPOINT        = 'https://openrouter.ai/api/v1/chat/completions';
+
+async function orRequest(text, apiKey, model) {
+  const systemPrompt = DIKTAT_PROMPTS[currentDiktatModul] || DIKTAT_PROMPTS.kontrolle;
+  const resp = await fetch(OR_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'HTTP-Referer': location.origin,
+      'X-Title': 'ImkereiApp',
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 400,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: `Diktat: "${text}"` },
+      ],
+    }),
+  });
+  if (!resp.ok) throw new Error(`OR ${resp.status} (${model})`);
+  const data = await resp.json();
+  const raw = data.choices?.[0]?.message?.content?.trim() || '';
+  // JSON aus der Antwort extrahieren (Modell gibt manchmal Markdown-Blöcke zurück)
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('Kein JSON in Antwort');
+  return JSON.parse(match[0]);
+}
+
+async function extractWithClaude(text, apiKey) {
+  try {
+    return await orRequest(text, apiKey, OR_MODEL_PRIMARY);
+  } catch (errPrimary) {
+    console.warn('Primary model failed, using fallback:', errPrimary);
+    return await orRequest(text, apiKey, OR_MODEL_FALLBACK);
+  }
+}
+
+function showExtractedPreview(data) {
+  const LABELS = {
+    koenigin_gesehen: 'Königin gesehen',
+    brutstadium: 'Brutstadium',
+    volkstaerke: 'Volksstärke',
+    futterzustand: 'Futterzustand',
+    schwarmstimmung: 'Schwarmstimmung',
+    weiselzellen: 'Weiselzellen',
+    notiz: 'Notiz',
+    // Ernte
+    datum: 'Datum', standort: 'Standort', tracht: 'Tracht',
+    zargen: 'Zargen', gewichtBrutto: 'Gewicht brutto (kg)',
+    gewichtNetto: 'Gewicht netto (kg)', wassergehalt: 'Wassergehalt (%)', farbe: 'Farbe',
+    // Varroa
+    methode: 'Methode', milbenAnzahl: 'Milben', bienen: 'Bienen (Probe)',
+    // Buchhaltung
+    typ: 'Typ', kategorie: 'Kategorie', produkt: 'Produkt',
+    menge: 'Menge', einheit: 'Einheit', preis: 'Preis', betrag: 'Betrag (CHF)',
+    // Königinnenzucht
+    name: 'Runden-Name', umlarvDatum: 'Umlarvdatum',
+    larvenAnzahl: 'Larven', zuchtmutterVolkId: 'Zuchtmutter Volk',
+    zuchtmutterJahrgang: 'Zuchtmutter Jahrgang',
+  };
+  const unklar = new Set(data.unklar || []);
+  const container = document.getElementById('extracted-preview');
+  const fields = Object.entries(data)
+    .filter(([k, v]) => v !== null && v !== undefined && !['unklar','diktat_original','erfassung','volkId'].includes(k) && LABELS[k])
+    .map(([k, v]) => {
+      let val = v;
+      if (k === 'koenigin_gesehen') val = val ? 'Ja ✓' : 'Nein ✗';
+      if (k === 'schwarmstimmung') val = val ? 'Ja ⚠️' : 'Nein';
+      if (k === 'volkstaerke') val = `${val}/10`;
+      const unclear = unklar.has(k) ? ' unclear' : '';
+      return `<div class="field-pill${unclear}"><span class="fname">${LABELS[k]}</span><span class="fval">${esc(String(val))}</span></div>`;
+    }).join('');
+
+  container.innerHTML = fields || '<div style="color:var(--muted);font-size:13px">Keine Felder erkannt</div>';
+  container.classList.remove('off');
+  document.getElementById('btn-diktat-ok').classList.remove('off');
+}
+
+// ── Diktat-Dispatcher ──
+function saveDiktat() {
+  switch (currentDiktatModul) {
+    case 'kontrolle':        saveDiktatKontrolle(); break;
+    case 'ernte':            saveDiktatErnte(); break;
+    case 'varroa':           saveDiktatVarroa(); break;
+    case 'buchhaltung':      saveDiktatBuchhaltung(); break;
+    case 'koeniginnenzucht': saveDiktatKoeniginnenzucht(); break;
+    default:                 saveDiktatKontrolle();
+  }
+}
+
+function saveDiktatKontrolle() {
+  if (!extractedData || !diktatVolkId) return;
+  const k = {
+    id: 'k_' + uuid().slice(0,8),
+    datum: today(),
+    koenigin_gesehen: extractedData.koenigin_gesehen ?? extractedData.koeniginGesehen ?? null,
+    brutstadium: extractedData.brutstadium || extractedData.brutbild || null,
+    volkstaerke: extractedData.volkstaerke ?? extractedData.volksstaerke ?? null,
+    futterzustand: extractedData.futterzustand || null,
+    schwarmstimmung: extractedData.schwarmstimmung ?? null,
+    weiselzellen: extractedData.weiselzellen || 0,
+    notiz: extractedData.notiz || '',
+    diktat_original: extractedData.diktat_original || '',
+    erfassung: extractedData.erfassung || 'diktat',
+    erfasst_am: new Date().toISOString(),
+  };
+  saveKontrolle(diktatVolkId, k);
+  closeDiktat();
+  toast('Kontrolle gespeichert ✓');
+  showVolk(diktatVolkId);
+  syncIfOnline();
+}
+
+function saveDiktatErnte() {
+  if (!extractedData) return;
+  // Formularfelder mit extrahierten Werten befüllen
+  const d = extractedData;
+  if (d.datum)        { const el = document.getElementById('e-datum');   if (el) el.value = d.datum; }
+  if (d.volkId) {
+    const el = document.getElementById('e-volk');
+    if (el) { el.value = d.volkId; if (!el.value) el.value = ''; }
+  }
+  if (d.tracht) {
+    const el = document.getElementById('e-tracht');
+    if (el) { el.value = d.tracht; if (!el.value) el.value = 'Sonstiges'; }
+  }
+  if (d.zargen != null)        { const el = document.getElementById('e-zargen');  if (el) el.value = d.zargen; }
+  if (d.gewichtBrutto != null) { const el = document.getElementById('e-brutto');  if (el) el.value = d.gewichtBrutto; }
+  if (d.gewichtNetto  != null) { const el = document.getElementById('e-netto');   if (el) el.value = d.gewichtNetto; }
+  if (d.wassergehalt  != null) { const el = document.getElementById('e-wasser');  if (el) el.value = d.wassergehalt; }
+  if (d.farbe) {
+    const el = document.getElementById('e-farbe');
+    if (el) { el.value = d.farbe; if (!el.value) el.value = ''; }
+  }
+  if (d.notiz) { const el = document.getElementById('e-notiz'); if (el) el.value = d.notiz; }
+  closeDiktat();
+  toast('Felder befüllt – bitte prüfen und speichern');
+}
+
+function saveDiktatVarroa() {
+  if (!extractedData) return;
+  const milben = extractedData.milbenAnzahl || 0;
+  const bienen = extractedData.bienen || 100;
+  const rate = +(milben / bienen * 100).toFixed(2);
+  const sw = getSettings().varroaSW || 2.0;
+  const messung = {
+    id: 'm_' + uuid().slice(0,8),
+    datum: extractedData.datum || today(),
+    volk_id: diktatVolkId || extractedData.volkId || null,
+    methode: extractedData.methode || null,
+    milben_anzahl: milben,
+    bienen_probe: bienen,
+    befallsrate_prozent: rate,
+    warnung: rate >= sw,
+    notiz: extractedData.notiz || '',
+    diktat_original: extractedData.diktat_original || '',
+    erfassung: extractedData.erfassung || 'diktat',
+    erfasst_am: new Date().toISOString(),
+  };
+  const all = getData(LS.varroa);
+  all.push(messung);
+  setData(LS.varroa, all);
+  addPending({ type: 'varroa', id: messung.id, ts: Date.now() });
+  closeDiktat();
+  toast(`Messung gespeichert · ${rate.toFixed(1)}% Befall`);
+  syncIfOnline();
+}
+
+function saveDiktatBuchhaltung() {
+  if (!extractedData) return;
+  const buchung = {
+    id: 'b_' + uuid().slice(0,8),
+    datum: extractedData.datum || today(),
+    typ: extractedData.typ || null,
+    kategorie: extractedData.kategorie || null,
+    produkt: extractedData.produkt || null,
+    menge: extractedData.menge || null,
+    einheit: extractedData.einheit || null,
+    preis: extractedData.preis || null,
+    betrag: extractedData.betrag || null,
+    notiz: extractedData.notiz || '',
+    user: getSettings().ghUser || 'gl',
+    _synced: false,
+    createdAt: new Date().toISOString(),
+  };
+  const all = getData(LS.buchhaltung);
+  all.push(buchung);
+  setData(LS.buchhaltung, all);
+  addPending({ type: 'buchhaltung', id: buchung.id, ts: Date.now() });
+  closeDiktat();
+  toast('Buchung gespeichert ✓');
+  syncIfOnline();
+}
+
+function saveDiktatKoeniginnenzucht() {
+  if (!extractedData) return;
+  const larvenAnzahl = extractedData.larvenAnzahl || null;
+  const runde = {
+    id: 'qr_' + uuid().slice(0,8),
+    name: extractedData.name || `Runde ${getRunden().length + 1}`,
+    methode: extractedData.methode || null,
+    umlarvDatum: extractedData.umlarvDatum || today(),
+    zuchtmutter: {
+      volkId: extractedData.zuchtmutterVolkId || diktatVolkId || null,
+      jahrgang: extractedData.zuchtmutterJahrgang || null,
+    },
+    schrittDaten: larvenAnzahl != null ? { larven: { anzahl: larvenAnzahl, notiz: extractedData.notiz || '' } } : {},
+    _synced: false,
+    createdAt: new Date().toISOString(),
+  };
+  const all = getRunden();
+  all.push(runde);
+  setRunden(all);
+  addPending({ type: 'koeniginnenzucht', id: runde.id, ts: Date.now() });
+  closeDiktat();
+  toast('Zucht-Runde gespeichert ✓');
+  if (currentPage === 'koeniginnenzucht') renderRunden();
+  syncIfOnline();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VARROA (BETA)
+// ═══════════════════════════════════════════════════════════════
+function showVarroaForm() {
+  const voelker = getVoelker();
+  if (!voelker.length) { toast('Zuerst Völker anlegen'); return; }
+  const s = getSettings();
+  const sw = s.varroaSW || 2.0;
+  document.getElementById('varroa-content').innerHTML = `
+    <div class="section-title">Neue Messung</div>
+    <div class="card">
+      <div class="row"><label>Volk</label>
+        <select id="var-volk" style="text-align:right">
+          ${voelker.map(v=>`<option value="${v.id}">${esc(v.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="row"><label>Datum</label><input type="date" id="var-datum" value="${today()}"></div>
+      <div class="row"><label>Methode</label>
+        <select id="var-methode" style="text-align:right">
+          <option value="alkoholwaesche">Alkoholwäsche</option>
+          <option value="puderzucker">Puderzucker</option>
+          <option value="totenfall">Natürlicher Totenfall (24h)</option>
+        </select>
+      </div>
+      <div class="row"><label>Milben (Anzahl)</label><input type="number" id="var-milben" placeholder="0" min="0" inputmode="numeric" style="text-align:right" oninput="calcBefallsrate()"></div>
+      <div class="row"><label>Bienen (Probe)</label><input type="number" id="var-bienen" placeholder="100" value="100" min="1" inputmode="numeric" style="text-align:right" oninput="calcBefallsrate()"></div>
+      <div class="row" style="background:var(--amber-soft)">
+        <label style="font-weight:600;color:var(--amber-dark)">Befallsrate</label>
+        <div id="var-rate" class="varroa-rate" style="font-size:20px;text-align:right;flex:1">—</div>
+      </div>
+      <div id="var-warning" class="off" style="padding:10px 14px;background:var(--red-light);color:var(--red);font-size:13px;font-weight:600">⚠️ Schwellenwert überschritten! Behandlung empfohlen.</div>
+    </div>
+    <button class="btn green" onclick="saveVarroaMessung(${sw})">Messung speichern</button>
+  `;
+}
+
+function calcBefallsrate() {
+  const m = parseFloat(document.getElementById('var-milben')?.value) || 0;
+  const b = parseFloat(document.getElementById('var-bienen')?.value) || 100;
+  const rate = b > 0 ? (m / b * 100) : 0;
+  const el = document.getElementById('var-rate');
+  const sw = getSettings().varroaSW || 2.0;
+  if (el) {
+    el.textContent = rate.toFixed(1) + '%';
+    el.className = 'varroa-rate ' + (rate === 0 ? '' : rate < sw ? 'ok' : rate < sw*2 ? 'warn' : 'crit');
+  }
+  const warn = document.getElementById('var-warning');
+  if (warn) warn.classList.toggle('off', rate < sw);
+}
+
+function saveVarroaMessung(sw) {
+  const volkId = document.getElementById('var-volk').value;
+  const milben = parseFloat(document.getElementById('var-milben').value) || 0;
+  const bienen = parseFloat(document.getElementById('var-bienen').value) || 100;
+  const rate = +(milben / bienen * 100).toFixed(2);
+  const messung = {
+    id: 'm_' + uuid().slice(0,8),
+    volk_id: volkId,
+    datum: document.getElementById('var-datum').value || today(),
+    methode: document.getElementById('var-methode').value,
+    milben_anzahl: milben,
+    bienen_probe: bienen,
+    befallsrate_prozent: rate,
+    warnung: rate >= sw,
+    erfasst_am: new Date().toISOString(),
+  };
+  const all = getData(LS.varroa);
+  all.push(messung);
+  setData(LS.varroa, all);
+  toast(`Messung gespeichert · ${rate.toFixed(1)}% Befall`);
+  addPending({ type: 'varroa', id: messung.id, ts: Date.now() });
+  syncIfOnline();
+  document.getElementById('varroa-content').innerHTML = '';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ERNTE
+// ═══════════════════════════════════════════════════════════════
+function startDiktat(modul) { openDiktat(null, modul); }
+
+function fillErnteVoelkerSelect() {
+  const voelker = getVoelker();
+  const el = document.getElementById('e-volk');
+  if (!el) return;
+  const cur = el.value;
+  el.innerHTML = '<option value="">— wählen —</option>' +
+    voelker.map(v => `<option value="${v.id}"${v.id === cur ? ' selected' : ''}>${esc(v.name)}</option>`).join('');
+  // Datum auf heute setzen falls leer
+  const datEl = document.getElementById('e-datum');
+  if (datEl && !datEl.value) datEl.value = today();
+}
+
+function saveErnte() {
+  const volkId = document.getElementById('e-volk').value;
+  const ernte = {
+    id: 'e_' + uuid().slice(0,8),
+    datum: document.getElementById('e-datum').value || today(),
+    volkId: volkId || null,
+    tracht: document.getElementById('e-tracht').value || null,
+    zargen: parseFloat(document.getElementById('e-zargen').value) || null,
+    gewichtBrutto: parseFloat(document.getElementById('e-brutto').value) || null,
+    gewichtNetto: parseFloat(document.getElementById('e-netto').value) || null,
+    wassergehalt: parseFloat(document.getElementById('e-wasser').value) || null,
+    farbe: document.getElementById('e-farbe').value || null,
+    notiz: document.getElementById('e-notiz').value.trim(),
+    _synced: false,
+    createdAt: new Date().toISOString(),
+  };
+  const arr = getData(LS.ernten);
+  arr.unshift(ernte);
+  setData(LS.ernten, arr);
+  addPending({ type: 'ernte', data: ernte });
+  syncIfOnline();
+  // Formular zurücksetzen
+  document.getElementById('e-zargen').value = '';
+  document.getElementById('e-brutto').value = '';
+  document.getElementById('e-netto').value  = '';
+  document.getElementById('e-wasser').value = '';
+  document.getElementById('e-farbe').value  = '';
+  document.getElementById('e-notiz').value  = '';
+  document.getElementById('e-tracht').value = '';
+  document.getElementById('e-datum').value  = today();
+  renderErnten();
+  toast('Ernte gespeichert ✓');
+}
+
+function renderErnten() {
+  const voelker = getVoelker();
+  const ernten  = getData(LS.ernten);
+  const el = document.getElementById('ernten-liste');
+  if (!el) return;
+  if (!ernten.length) {
+    el.innerHTML = '<div class="empty-state"><div class="ei">🍯</div><p>Noch keine Ernten erfasst.</p></div>';
+    return;
+  }
+  el.innerHTML = ernten.map(e => {
+    const volk = voelker.find(v => v.id === e.volkId);
+    const volkName = volk ? esc(volk.name) : (e.volkId ? esc(e.volkId) : '—');
+    const netto = e.gewichtNetto != null ? `${e.gewichtNetto} kg` : '—';
+    const tracht = e.tracht || '—';
+    const sync = e._synced === false ? ' <span style="color:var(--muted);font-size:11px">●</span>' : '';
+    return `<div class="kontrolle-item">
+      <div class="ki-header">
+        <span class="ki-datum">${fmtDate(e.datum)}</span>
+        <span class="badge ok">${esc(tracht)}</span>
+      </div>
+      <div class="ki-body">
+        ${volkName}${sync} · ${netto}${e.wassergehalt != null ? ` · ${e.wassergehalt}% H₂O` : ''}
+        ${e.notiz ? `<br><em>${esc(e.notiz)}</em>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GITHUB SYNC
+// ═══════════════════════════════════════════════════════════════
+function addPending(item) {
+  const p = getData(LS.pending);
+  p.push(item);
+  setData(LS.pending, p);
+  updateSyncBadge();
+}
+
+function updateSyncBadge() {
+  const n = getData(LS.pending).length;
+  const s = getSettings();
+  const ready = s.ghUser && s.ghToken && s.ghRepo;
+  if (n === 0) setSyncBadge('ok', '✓ sync');
+  else if (!ready) setSyncBadge('err', `${n} lokal`);
+  else setSyncBadge('pending', `⏱ ${n} offen`);
+}
+
+function setSyncBadge(cls, text) {
+  const b = document.getElementById('sync-badge');
+  b.className = 'sync-badge ' + cls;
+  b.textContent = text;
+}
+
+async function syncIfOnline() {
+  if (!navigator.onLine) return;
+  const s = getSettings();
+  if (!s.ghUser || !s.ghToken || !s.ghRepo) return;
+  const pending = getData(LS.pending);
+  if (!pending.length) return;
+
+  setSyncBadge('syncing', '⏳ sync…');
+
+  const payload = {
+    voelker: getData(LS.voelker),
+    standorte: getData(LS.standorte),
+    varroa: getData(LS.varroa),
+    ernten: getData(LS.ernten),
+    aufgaben: getData(LS.aufgaben),
+    kosten: getData(LS.kosten),
+    buchhaltung: getData(LS.buchhaltung),
+    koeniginnen: getData(LS.koeniginnen),
+    lastSync: new Date().toISOString(),
+  };
+
+  const ok = await pushToGitHub(s, payload);
+  if (ok) {
+    setData(LS.pending, []);
+    setSyncBadge('ok', '✓ sync');
+    toast('Synchronisiert ✓');
+  } else {
+    setSyncBadge('err', `⚠️ Fehler`);
+  }
+}
+
+function b64enc(str) { return btoa(unescape(encodeURIComponent(str))); }
+function b64dec(str) { return decodeURIComponent(escape(atob(str.replace(/\n/g,'')))); }
+
+async function pushToGitHub(s, data) {
+  const api = `https://api.github.com/repos/${s.ghUser}/${s.ghRepo}/contents/data.json`;
+  const headers = {
+    'Authorization': `token ${s.ghToken}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+  };
+  let sha = null;
+  try {
+    const r = await fetch(api, { headers });
+    if (r.ok) { const d = await r.json(); sha = d.sha; }
+  } catch {}
+
+  const body = {
+    message: `sync ${new Date().toISOString().slice(0,10)}`,
+    content: b64enc(JSON.stringify(data, null, 2)),
+    ...(sha ? { sha } : {}),
+  };
+  try {
+    const r = await fetch(api, { method: 'PUT', headers, body: JSON.stringify(body) });
+    return r.ok;
+  } catch { return false; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SETUP SECTION (auf Völker-Seite wenn nicht konfiguriert)
+// ═══════════════════════════════════════════════════════════════
+function renderSetupSection() {
+  const s = getSettings();
+  const el = document.getElementById('setup-section');
+  if (s.ghUser && s.ghToken && s.ghRepo) {
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = `<div class="setup-card" style="margin-bottom:14px">
+    <h2>⚙️ Einrichtung noch nicht abgeschlossen</h2>
+    <p style="color:rgba(255,255,255,.7);font-size:13px;margin-bottom:12px">GitHub und Claude API-Key konfigurieren um die Synchronisation zu aktivieren.</p>
+    <button class="btn primary small" onclick="navTo('settings')">Jetzt einrichten</button>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DATEN EXPORT
+// ═══════════════════════════════════════════════════════════════
+function exportData() {
+  const data = {
+    voelker: getData(LS.voelker),
+    standorte: getData(LS.standorte),
+    varroa: getData(LS.varroa),
+    ernten: getData(LS.ernten),
+    aufgaben: getData(LS.aufgaben),
+    kosten: getData(LS.kosten),
+    buchhaltung: getData(LS.buchhaltung),
+    koeniginnen: getData(LS.koeniginnen),
+    exportiert_am: new Date().toISOString(),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `imkerei_export_${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function confirmClearData() {
+  if (confirm('Wirklich ALLE lokalen Daten löschen? Dies kann nicht rückgängig gemacht werden!')) {
+    Object.values(LS).forEach(k => localStorage.removeItem(k));
+    toast('Alle Daten gelöscht');
+    location.reload();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('on'), 2600);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BUCHHALTUNG
+// ═══════════════════════════════════════════════════════════════
+
+const KATEGORIEN = {
+  ausgabe: ['Material','Medikamente','Beuten/Zargen','Honigverarbeitung','Fahrtkosten','Kurs/Verein','Sonstiges'],
+  einnahme: ['Honigverkauf','Wachs','Ableger','Sonstiges'],
+};
+
+function initBuchungForm() {
+  const d = document.getElementById('b-datum');
+  if (d && !d.value) d.value = today();
+  updateBuchungKategorien();
+}
+
+function updateBuchungKategorien() {
+  const typ = document.getElementById('b-typ')?.value || 'ausgabe';
+  const el = document.getElementById('b-kategorie');
+  if (!el) return;
+  el.innerHTML = KATEGORIEN[typ].map(k => `<option>${k}</option>`).join('');
+}
+
+function calcBuchungBetrag() {
+  const menge  = parseFloat(document.getElementById('b-menge')?.value) || 0;
+  const preis  = parseFloat(document.getElementById('b-preis')?.value) || 0;
+  const betrag = document.getElementById('b-betrag');
+  if (betrag && menge > 0 && preis > 0 && !betrag.value) {
+    betrag.value = (menge * preis).toFixed(2);
+  }
+}
+
+function saveBuchung() {
+  const betrag = parseFloat(document.getElementById('b-betrag').value);
+  if (!betrag) { toast('Bitte Betrag eingeben'); return; }
+  const buchung = {
+    id: 'b_' + uuid().slice(0,8),
+    datum: document.getElementById('b-datum').value || today(),
+    typ: document.getElementById('b-typ').value,
+    kategorie: document.getElementById('b-kategorie').value,
+    produkt: document.getElementById('b-produkt').value.trim() || null,
+    menge: parseFloat(document.getElementById('b-menge').value) || null,
+    einheit: document.getElementById('b-einheit').value.trim() || null,
+    preis: parseFloat(document.getElementById('b-preis').value) || null,
+    betrag,
+    notiz: document.getElementById('b-notiz').value.trim(),
+    user: getSettings().ghUser || 'gl',
+    _synced: false,
+    createdAt: new Date().toISOString(),
+  };
+  const all = getData(LS.buchhaltung);
+  all.unshift(buchung);
+  setData(LS.buchhaltung, all);
+  addPending({ type: 'buchhaltung', id: buchung.id, ts: Date.now() });
+  // Formular zurücksetzen
+  ['b-produkt','b-menge','b-einheit','b-preis','b-betrag','b-notiz'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('b-datum').value = today();
+  renderBilanz();
+  renderBuchungen();
+  toast('Buchung gespeichert ✓');
+  syncIfOnline();
+}
+
+function calcBilanz(jahr) {
+  const alle = getData(LS.buchhaltung);
+  const jahrEintraege = alle.filter(b => b.datum?.startsWith(jahr));
+  const einnahmen = jahrEintraege.filter(b => b.typ === 'einnahme')
+    .reduce((s, b) => s + (b.betrag || 0), 0);
+  const ausgaben = jahrEintraege.filter(b => b.typ === 'ausgabe')
+    .reduce((s, b) => s + (b.betrag || 0), 0);
+  const kg = getData(LS.ernten).filter(e => e.datum?.startsWith(jahr))
+    .reduce((s, e) => s + (e.gewichtNetto || 0), 0);
+  return {
+    einnahmen,
+    ausgaben,
+    saldo: einnahmen - ausgaben,
+    kostenProKg: kg > 0 ? ausgaben / kg : null,
+  };
+}
+
+function renderBilanz() {
+  const jahr = String(new Date().getFullYear());
+  document.getElementById('bilanz-jahr').textContent = jahr;
+  const { einnahmen, ausgaben, saldo, kostenProKg } = calcBilanz(jahr);
+  const fmt = n => Number(n).toFixed(2).replace('.',',') + ' CHF';
+  document.getElementById('b-ein').textContent = fmt(einnahmen);
+  document.getElementById('b-aus').textContent = fmt(ausgaben);
+  const salEl = document.getElementById('b-sal');
+  salEl.textContent = fmt(saldo);
+  salEl.className = 'bv ' + (saldo > 0 ? 'pos' : saldo < 0 ? 'neg' : 'zero');
+  const kpkg = document.getElementById('b-kosten-kg');
+  kpkg.textContent = kostenProKg != null
+    ? `Kosten/kg Honig: ${kostenProKg.toFixed(2)} CHF`
+    : '';
+}
+
+function renderBuchungen() {
+  const alle = getData(LS.buchhaltung);
+  const el = document.getElementById('buchungen-liste');
+  if (!el) return;
+  if (!alle.length) {
+    el.innerHTML = '<div class="empty-state"><div class="ei">💰</div><p>Noch keine Buchungen.</p></div>';
+    return;
+  }
+  const sorted = [...alle].sort((a, b) => (b.datum || '').localeCompare(a.datum || ''));
+  const shown = sorted.slice(0, 30);
+  el.innerHTML = shown.map(b => {
+    const lbl = esc(b.produkt || b.kategorie || b.typ);
+    const sub = [b.kategorie, fmtDate(b.datum)].filter(Boolean).join(' · ');
+    const sign = b.typ === 'einnahme' ? '+' : '−';
+    const betrag = `${sign}${Number(b.betrag || 0).toFixed(2).replace('.',',')} CHF`;
+    return `<div class="buchung-item">
+      <div class="buchung-dot ${b.typ}"></div>
+      <div class="buchung-info">
+        <div class="buchung-main">${lbl}</div>
+        <div class="buchung-sub">${esc(sub)}</div>
+      </div>
+      <span class="buchung-betrag ${b.typ}">${betrag}</span>
+    </div>`;
+  }).join('');
+  if (sorted.length > 30) {
+    el.innerHTML += `<div style="text-align:center;font-size:12px;color:var(--muted);padding:8px 0">${sorted.length - 30} weitere Buchungen nicht angezeigt</div>`;
+  }
+}
+
+async function importBuchhaltungData() {
+  const s = getSettings();
+  if (!s.ghUser || !s.ghRepo) {
+    toast('GitHub-User und Repo zuerst in Einstellungen konfigurieren');
+    return;
+  }
+  const url = `https://raw.githubusercontent.com/${s.ghUser}/${s.ghRepo}/main/data_gl.json`;
+  toast('Lade Buchhaltungsdaten…');
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) { toast('Datei nicht gefunden: data_gl.json'); return; }
+    const raw = await resp.json();
+    // Alte Buchhaltungs-App speichert Einträge in raw.entries
+    const entries = Array.isArray(raw) ? raw : (raw.entries || []);
+    const existing = getData(LS.buchhaltung);
+    const existingIds = new Set(existing.map(b => b.id));
+    let imported = 0;
+    const merged = [...existing];
+    entries.forEach(e => {
+      if (existingIds.has(e.id)) return;
+      // Datenmodell normalisieren (alte App: type:'ein'/'aus', neue: typ:'einnahme'/'ausgabe')
+      const buchung = {
+        id: e.id,
+        datum: e.datum || today(),
+        typ: e.type === 'ein' ? 'einnahme' : e.type === 'aus' ? 'ausgabe' : (e.typ || 'ausgabe'),
+        kategorie: e.kategorie || e.beschreibung || 'Sonstiges',
+        produkt: e.produkt || e.beschreibung || null,
+        menge: e.menge || null,
+        einheit: e.einheit || null,
+        preis: e.preis || null,
+        betrag: e.betrag || e.gesamt || 0,
+        notiz: e.notiz || '',
+        user: e.user || s.ghUser || 'gl',
+        _synced: true,
+        createdAt: e.createdAt || new Date().toISOString(),
+      };
+      merged.push(buchung);
+      imported++;
+    });
+    setData(LS.buchhaltung, merged);
+    toast(`${imported} Buchungen importiert ✓`);
+  } catch (err) {
+    toast('Import fehlgeschlagen: ' + err.message);
+    console.error(err);
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// KÖNIGINNENZUCHT
+// ═══════════════════════════════════════════════════════════════
+const ZUCHT_SCHRITTE = [
+  { day: 0,       label: 'Umlarvdatum',      key: 'larven'       },
+  { day: 1,       label: 'Annahmekontrolle', key: 'annahme'      },
+  { day: 5,       label: 'Umlarvkontrolle',  key: 'umlarv5'      },
+  { day: 13,      label: 'Schlupf',           key: 'schlupf'      },
+  { day: 14,      label: 'EWK / Ableger',    key: 'ewk'          },
+  { day: [18,20], label: 'Begattung',         key: 'begattung'    },
+  { day: [23,27], label: 'Legeprüfung',      key: 'legepruefung' },
+  { day: [37,41], label: 'Freigabe',          key: 'freigabe'     },
+];
+const METHODEN = ['Absperrgitter','Sammelableger','Starter/Finisher',
+  'Anbrüter','Piana','Cloake','Zwischenableger','Jenter','Brutschrank','Besamung'];
+
+function addDays(dateStr, n) {
+  const d = new Date(dateStr); d.setDate(d.getDate() + n); return d.toISOString().split('T')[0];
+}
+function calcZuchtDaten(umlarvDatum) {
+  return ZUCHT_SCHRITTE.reduce((acc, s) => {
+    const days = Array.isArray(s.day) ? s.day : [s.day];
+    acc[s.key] = { dates: days.map(d => addDays(umlarvDatum, d)), label: s.label };
+    return acc;
+  }, {});
+}
+function getRunden() { return getData(LS.koeniginnen); }
+function setRunden(arr) { setData(LS.koeniginnen, arr); }
+
+function isSchrittDone(key, schritt) {
+  if (!schritt) return false;
+  switch (key) {
+    case 'larven':       return schritt.anzahl != null;
+    case 'annahme':      return schritt.angenommen != null;
+    case 'umlarv5':      return schritt.geprueft === true || !!schritt.notiz;
+    case 'schlupf':      return schritt.geschluepft != null;
+    case 'ewk':          return schritt.erledigt === true || !!schritt.notiz;
+    case 'begattung':    return schritt.bestaetigt === true || schritt.begattet != null;
+    case 'legepruefung': return schritt.erfolg === true || schritt.legt != null;
+    case 'freigabe':     return schritt.freigegeben != null;
+    default: return false;
+  }
+}
+
+function nextStep(runde) {
+  const termine = calcZuchtDaten(runde.umlarvDatum);
+  const t = today();
+  for (const s of ZUCHT_SCHRITTE) {
+    const done = isSchrittDone(s.key, runde.schrittDaten?.[s.key]);
+    if (!done) {
+      const dueDate = termine[s.key].dates[0];
+      return { label: s.label, key: s.key, date: dueDate, overdue: dueDate < t };
+    }
+  }
+  return null; // alle erledigt
+}
+
+function calcFunnel(runde) {
+  const sd = runde.schrittDaten || {};
+  return {
+    larven:      sd.larven?.anzahl      || 0,
+    angenommen:  sd.annahme?.angenommen || 0,
+    geschluepft: sd.schlupf?.geschluepft || 0,
+    freigegeben: sd.freigabe?.freigegeben || 0,
+  };
+}
+
+// ── Runden-Liste ──
+function renderRunden() {
+  const runden = getRunden();
+  const el = document.getElementById('zucht-liste');
+  if (!el) return;
+  if (!runden.length) {
+    el.innerHTML = `<div class="empty-state"><div class="ei">👑</div><p>Noch keine Zuchtrunden.<br>Erste Runde anlegen um zu starten.</p></div>`;
+    return;
+  }
+  el.innerHTML = [...runden].reverse().map(r => {
+    const ns = nextStep(r);
+    const f  = calcFunnel(r);
+    const fTxt = f.larven ? `${f.larven}→${f.angenommen}→${f.geschluepft}→${f.freigegeben}` : '';
+    const nsLabel = ns
+      ? `<span style="color:${ns.overdue ? 'var(--crit)' : 'var(--amber)'}">➤ ${ns.label}: ${fmtDate(ns.date)}</span>`
+      : `<span style="color:var(--ok)">✓ Abgeschlossen</span>`;
+    const ampel = !ns ? 'ok' : ns.overdue ? 'crit' : 'warn';
+    return `<div class="volk-card" onclick="showRunde('${r.id}')">
+      <div class="ampel ${ampel}"></div>
+      <div class="volk-info">
+        <div class="volk-name">${esc(r.name || 'Runde')}</div>
+        <div class="volk-sub">${esc(r.methode || '—')} · ${fmtDate(r.umlarvDatum)}</div>
+        <div style="font-size:11px;margin-top:2px">${nsLabel}</div>
+        ${fTxt ? `<div style="font-size:10px;color:var(--muted);margin-top:2px">🐝 ${fTxt}</div>` : ''}
+      </div>
+      <div class="volk-arrow">›</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Runde Detail ──
+let currentRundeId  = null;
+let currentSchrittKey = null;
+
+function showRunde(rundeId) {
+  currentRundeId = rundeId;
+  const runde = getRunden().find(r => r.id === rundeId);
+  if (!runde) return;
+  const termine = calcZuchtDaten(runde.umlarvDatum);
+  const f = calcFunnel(runde);
+  const t = today();
+
+  // Funnel
+  const fItems = [
+    { lbl: 'Larven',      val: f.larven      },
+    { lbl: 'Angenommen',  val: f.angenommen  },
+    { lbl: 'Geschlüpft',  val: f.geschluepft },
+    { lbl: 'Freigegeben', val: f.freigegeben },
+  ];
+  const funnelHTML = `<div style="display:flex;gap:4px;align-items:center;margin-bottom:14px">
+    ${fItems.map((fi, i) => `
+      <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 4px;text-align:center">
+        <div style="font-size:20px;font-weight:800;color:${fi.val>0?'var(--amber)':'var(--muted)'}">${fi.val}</div>
+        <div style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;line-height:1.3">${fi.lbl}</div>
+      </div>${i < fItems.length-1 ? '<div style="color:var(--muted);font-size:14px;flex-shrink:0">›</div>' : ''}
+    `).join('')}
+  </div>`;
+
+  // Timeline
+  const timelineHTML = ZUCHT_SCHRITTE.map(s => {
+    const term = termine[s.key];
+    const sd = runde.schrittDaten?.[s.key] || {};
+    const done = isSchrittDone(s.key, sd);
+    const dates = term.dates;
+    const dateLabel = dates.length > 1
+      ? `${fmtDate(dates[0])}–${fmtDate(dates[dates.length-1])}`
+      : fmtDate(dates[0]);
+    const isPast = dates[dates.length-1] < t;
+    const isDue  = dates[0] <= t && !done;
+    const statusColor = done ? 'var(--ok)' : isPast ? 'var(--crit)' : isDue ? 'var(--amber)' : 'var(--muted)';
+    const statusIcon  = done ? '✓' : isPast ? '!' : '○';
+
+    let valPreview = '';
+    if (done) {
+      if (s.key === 'larven'       && sd.anzahl      != null) valPreview = `${sd.anzahl} Larven`;
+      if (s.key === 'annahme'      && sd.angenommen  != null) valPreview = `${sd.angenommen} angenommen`;
+      if (s.key === 'schlupf'      && sd.geschluepft != null) valPreview = `${sd.geschluepft} geschlüpft${sd.qualitaet ? ' · '+sd.qualitaet : ''}`;
+      if (s.key === 'begattung'    && sd.begattet    != null) valPreview = `${sd.begattet} begattet`;
+      if (s.key === 'legepruefung' && sd.legt        != null) valPreview = `${sd.legt} legen`;
+      if (s.key === 'freigabe'     && sd.freigegeben != null) valPreview = `${sd.freigegeben} freigegeben`;
+      if (s.key === 'ewk'          && sd.erledigt) valPreview = 'Erledigt ✓';
+      if (s.key === 'umlarv5'      && sd.geprueft) valPreview = 'Geprüft ✓';
+    }
+    const notizPreview = sd.notiz ? `<em style="font-size:11px;color:var(--muted)">${esc(sd.notiz)}</em>` : '';
+
+    return `<div class="kontrolle-item" style="cursor:pointer" onclick="openSchrittOverlay('${rundeId}','${s.key}')">
+      <div class="ki-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:20px;height:20px;border-radius:50%;background:${statusColor};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${statusIcon}</span>
+          <span class="ki-datum">${s.label}</span>
+        </div>
+        <span style="font-size:12px;color:var(--muted)">${dateLabel}</span>
+      </div>
+      ${valPreview || notizPreview ? `<div class="ki-body" style="padding-left:28px;margin-top:4px">${valPreview ? esc(valPreview) : ''}${notizPreview ? (valPreview?'<br>':'') + notizPreview : ''}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  document.getElementById('kontrolle-content').innerHTML = `
+    <button class="btn secondary" style="margin-bottom:14px" onclick="navTo('koeniginnenzucht')">← Zurück</button>
+    <div class="section-title">Runde: ${esc(runde.name || 'Ohne Name')}</div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="row"><label>Methode</label><span style="color:var(--text2)">${esc(runde.methode || '—')}</span></div>
+      <div class="row"><label>Umlarvdatum</label><span style="color:var(--text2)">${fmtDate(runde.umlarvDatum)}</span></div>
+      ${runde.zuchtmutter?.volkId ? `<div class="row"><label>Zuchtmutter</label><span style="color:var(--text2)">Volk ${esc(runde.zuchtmutter.volkId)}${runde.zuchtmutter.jahrgang ? ' ('+runde.zuchtmutter.jahrgang+')' : ''}</span></div>` : ''}
+    </div>
+    <div class="section-title">Statistik-Funnel</div>
+    ${funnelHTML}
+    <div class="section-title">Terminplan & Schritte</div>
+    ${timelineHTML}
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn secondary" style="flex:1" onclick="exportIcs('${rundeId}')">📅 .ics</button>
+      <button class="btn danger" style="flex:1" onclick="confirmDeleteRunde('${rundeId}')">Löschen</button>
+    </div>
+  `;
+
+  PAGES.forEach(p => document.getElementById('page-'+p)?.classList.add('hidden'));
+  document.getElementById('page-kontrolle').classList.remove('hidden');
+  document.getElementById('page-title').textContent = `👑 ${esc(runde.name || 'Runde')}`;
+  previousPage = 'koeniginnenzucht';
+  currentPage  = 'kontrolle';
+}
+
+function confirmDeleteRunde(rundeId) {
+  if (confirm('Zuchtrunde wirklich löschen?')) {
+    setRunden(getRunden().filter(r => r.id !== rundeId));
+    navTo('koeniginnenzucht');
+    toast('Runde gelöscht');
+  }
+}
+
+// ── Schritt-Overlay ──
+function openSchrittOverlay(rundeId, schrittKey) {
+  currentRundeId    = rundeId;
+  currentSchrittKey = schrittKey;
+  const runde = getRunden().find(r => r.id === rundeId);
+  if (!runde) return;
+  const s     = ZUCHT_SCHRITTE.find(s => s.key === schrittKey);
+  const sd    = runde.schrittDaten?.[schrittKey] || {};
+  const term  = calcZuchtDaten(runde.umlarvDatum)[schrittKey];
+  document.getElementById('schritt-overlay-title').textContent =
+    `${s.label} · ${term.dates.map(fmtDate).join('–')}`;
+
+  let fields = '';
+  switch (schrittKey) {
+    case 'larven':
+      fields = `<div class="row"><label>Larven eingelegt</label><input type="number" id="sf-anzahl" value="${sd.anzahl ?? ''}" placeholder="0" inputmode="numeric" style="font-size:16px;text-align:right"></div>`;
+      break;
+    case 'annahme':
+      fields = `<div class="row"><label>Angenommen</label><input type="number" id="sf-angenommen" value="${sd.angenommen ?? ''}" placeholder="0" inputmode="numeric" style="font-size:16px;text-align:right"></div>`;
+      break;
+    case 'umlarv5':
+      fields = `<div class="row"><label>Geprüft</label><select id="sf-geprueft" style="font-size:16px;text-align:right"><option value="">—</option><option value="true"${sd.geprueft?' selected':''}>Ja ✓</option><option value="false"${sd.geprueft===false?' selected':''}>Nein</option></select></div>`;
+      break;
+    case 'schlupf':
+      fields = `
+        <div class="row"><label>Geschlüpft</label><input type="number" id="sf-geschluepft" value="${sd.geschluepft ?? ''}" placeholder="0" inputmode="numeric" style="font-size:16px;text-align:right"></div>
+        <div class="row"><label>Qualität</label><select id="sf-qualitaet" style="font-size:16px;text-align:right">
+          <option value="">—</option>
+          <option${sd.qualitaet==='gut'?' selected':''}>gut</option>
+          <option${sd.qualitaet==='mittel'?' selected':''}>mittel</option>
+          <option${sd.qualitaet==='schlecht'?' selected':''}>schlecht</option>
+        </select></div>`;
+      break;
+    case 'ewk':
+      fields = `<div class="row"><label>EWK / Ableger</label><select id="sf-erledigt" style="font-size:16px;text-align:right"><option value="">—</option><option value="true"${sd.erledigt?' selected':''}>Erledigt ✓</option></select></div>`;
+      break;
+    case 'begattung':
+      fields = `
+        <div class="row"><label>Begattet (Anzahl)</label><input type="number" id="sf-begattet" value="${sd.begattet ?? ''}" placeholder="0" inputmode="numeric" style="font-size:16px;text-align:right"></div>
+        <div class="row"><label>Bestätigt</label><select id="sf-bestaetigt" style="font-size:16px;text-align:right"><option value="">—</option><option value="true"${sd.bestaetigt?' selected':''}>Ja ✓</option><option value="false">Nein</option></select></div>`;
+      break;
+    case 'legepruefung':
+      fields = `
+        <div class="row"><label>Legen (Anzahl)</label><input type="number" id="sf-legt" value="${sd.legt ?? ''}" placeholder="0" inputmode="numeric" style="font-size:16px;text-align:right"></div>
+        <div class="row"><label>Erfolg</label><select id="sf-erfolg" style="font-size:16px;text-align:right"><option value="">—</option><option value="true"${sd.erfolg?' selected':''}>Ja ✓</option><option value="false">Nein</option></select></div>`;
+      break;
+    case 'freigabe':
+      fields = `<div class="row"><label>Freigegeben</label><input type="number" id="sf-freigegeben" value="${sd.freigegeben ?? ''}" placeholder="0" inputmode="numeric" style="font-size:16px;text-align:right"></div>`;
+      break;
+  }
+  fields += `<div class="row"><label>Notiz</label><textarea id="sf-notiz" style="font-size:16px" placeholder="optional">${esc(sd.notiz || '')}</textarea></div>`;
+  document.getElementById('schritt-overlay-content').innerHTML = `<div class="card" style="margin:12px 0">${fields}</div>`;
+  document.getElementById('schritt-overlay').classList.remove('hidden');
+}
+
+function closeSchrittOverlay() {
+  document.getElementById('schritt-overlay').classList.add('hidden');
+}
+
+function saveSchritt() {
+  const runden = getRunden();
+  const runde  = runden.find(r => r.id === currentRundeId);
+  if (!runde) return;
+  if (!runde.schrittDaten) runde.schrittDaten = {};
+  const sd = runde.schrittDaten[currentSchrittKey] || {};
+
+  const gVal = id => { const el = document.getElementById(id); return el ? el.value : undefined; };
+  const nVal = id => { const v = parseFloat(gVal(id)); return isNaN(v) ? null : v; };
+  const bVal = id => { const v = gVal(id); return v === 'true' ? true : v === 'false' ? false : null; };
+
+  switch (currentSchrittKey) {
+    case 'larven':       sd.anzahl     = nVal('sf-anzahl'); break;
+    case 'annahme':      sd.angenommen = nVal('sf-angenommen'); break;
+    case 'umlarv5':      sd.geprueft   = bVal('sf-geprueft'); break;
+    case 'schlupf':
+      sd.geschluepft = nVal('sf-geschluepft');
+      sd.qualitaet   = gVal('sf-qualitaet') || null;
+      break;
+    case 'ewk':          sd.erledigt   = bVal('sf-erledigt'); break;
+    case 'begattung':
+      sd.begattet    = nVal('sf-begattet');
+      sd.bestaetigt  = bVal('sf-bestaetigt') === true;
+      break;
+    case 'legepruefung':
+      sd.legt   = nVal('sf-legt');
+      sd.erfolg = bVal('sf-erfolg') === true;
+      break;
+    case 'freigabe':     sd.freigegeben = nVal('sf-freigegeben'); break;
+  }
+  sd.notiz = document.getElementById('sf-notiz')?.value?.trim() || '';
+  runde.schrittDaten[currentSchrittKey] = sd;
+  runde._synced = false;
+  setRunden(runden);
+  closeSchrittOverlay();
+  toast('Schritt gespeichert ✓');
+  addPending({ type: 'koeniginnenzucht', id: runde.id, ts: Date.now() });
+  syncIfOnline();
+  showRunde(currentRundeId);
+}
+
+// ── Neue Runde ──
+function showNeueRunde() {
+  const n = getRunden().length + 1;
+  document.getElementById('nr-name').value  = `Runde ${n}`;
+  document.getElementById('nr-datum').value = today();
+  document.getElementById('nr-larven').value = '';
+  document.getElementById('nr-kj').value    = new Date().getFullYear();
+  document.getElementById('nr-methode').innerHTML =
+    '<option value="">— wählen —</option>' + METHODEN.map(m => `<option>${esc(m)}</option>`).join('');
+  const vs = document.getElementById('nr-zuchtmutter');
+  vs.innerHTML = '<option value="">— wählen —</option>' +
+    getVoelker().map(v => `<option value="${v.id}">${esc(v.name)}</option>`).join('');
+  document.getElementById('neue-runde-overlay').classList.remove('hidden');
+}
+
+function closeNeueRunde() {
+  document.getElementById('neue-runde-overlay').classList.add('hidden');
+}
+
+function saveNeueRunde() {
+  const umlarvDatum  = document.getElementById('nr-datum').value || today();
+  const larvenAnzahl = parseInt(document.getElementById('nr-larven').value) || null;
+  const runde = {
+    id: 'qr_' + uuid().slice(0,8),
+    name:     document.getElementById('nr-name').value.trim() || `Runde ${getRunden().length + 1}`,
+    methode:  document.getElementById('nr-methode').value    || null,
+    umlarvDatum,
+    zuchtmutter: {
+      volkId:   document.getElementById('nr-zuchtmutter').value || null,
+      jahrgang: parseInt(document.getElementById('nr-kj').value) || null,
+    },
+    schrittDaten: larvenAnzahl != null ? { larven: { anzahl: larvenAnzahl, notiz: '' } } : {},
+    _synced: false,
+    createdAt: new Date().toISOString(),
+  };
+  const all = getRunden();
+  all.push(runde);
+  setRunden(all);
+  closeNeueRunde();
+  toast(`"${runde.name}" angelegt ✓`);
+  renderRunden();
+  addPending({ type: 'koeniginnenzucht', id: runde.id, ts: Date.now() });
+  syncIfOnline();
+}
+
+// ── ICS-Export ──
+function exportIcs(rundeId) {
+  const runde = getRunden().find(r => r.id === rundeId);
+  if (!runde) return;
+  const termine  = calcZuchtDaten(runde.umlarvDatum);
+  const name     = runde.name || 'Zuchtrunde';
+  const lines    = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//ImkereiApp//Koeniginnenzucht//DE','CALSCALE:GREGORIAN'];
+  ZUCHT_SCHRITTE.forEach(s => {
+    termine[s.key].dates.forEach(dateStr => {
+      const ds = dateStr.replace(/-/g,'');
+      const de = addDays(dateStr, 1).replace(/-/g,'');
+      lines.push('BEGIN:VEVENT',
+        `UID:${runde.id}-${s.key}-${dateStr}@imkereiapp`,
+        `DTSTART;VALUE=DATE:${ds}`,
+        `DTEND;VALUE=DATE:${de}`,
+        `SUMMARY:\uD83D\uDC1D ${name}: ${s.label}`,
+        `DESCRIPTION:Methode: ${runde.methode || '\u2014'}`,
+        'END:VEVENT');
+    });
+  });
+  lines.push('END:VCALENDAR');
+  const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `zucht_${runde.umlarvDatum}.ics`; a.click();
+  URL.revokeObjectURL(url);
+  toast('Kalender-Datei exportiert ✓');
+}
+
+// ── Migration queen_rounds.json ──
+async function importQueenRounds() {
+  const s = getSettings();
+  if (!s.ghUser || !s.ghRepo) { toast('GitHub-User und Repo zuerst konfigurieren'); return; }
+  const url = `https://raw.githubusercontent.com/${s.ghUser}/${s.ghRepo}/main/queen_rounds.json`;
+  toast('Lade queen_rounds.json\u2026');
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) { toast('Datei nicht gefunden: queen_rounds.json'); return; }
+    const raw    = await resp.json();
+    const source = Array.isArray(raw) ? raw : (raw.rounds || []);
+    const existing = getRunden();
+    const existIds  = new Set(existing.map(r => r.id));
+    let imported = 0;
+    source.forEach(old => {
+      if (existIds.has(old.id)) return;
+      const umlarvDatum = old.fixType === 'schlupf'
+        ? addDays(old.fixDate, -13) : old.fixDate;
+      existing.push({
+        id: old.id,
+        name: old.name || 'Importiert',
+        methode: old.method || null,
+        umlarvDatum,
+        zuchtmutter: { volkId: old.queen?.origin || null, jahrgang: old.queen?.year || null },
+        schrittDaten: {
+          larven:       { anzahl: old.stepData?.['0']?.larvae ?? null,    notiz: old.stepData?.['0']?.notes || '' },
+          annahme:      { angenommen: old.stepData?.['1']?.accepted ?? null, notiz: old.stepData?.['1']?.notes || '' },
+          schlupf:      { geschluepft: old.stepData?.['13']?.hatched ?? null, qualitaet: old.stepData?.['13']?.quality || null, notiz: old.stepData?.['13']?.notes || '' },
+          begattung:    { begattet: old.stepData?.['18_20']?.mated ?? null, bestaetigt: old.stepData?.['18_20']?.confirmed ?? false, notiz: old.stepData?.['18_20']?.notes || '' },
+          legepruefung: { legt: old.stepData?.['23_27']?.laying ?? null, erfolg: old.stepData?.['23_27']?.success ?? false, notiz: old.stepData?.['23_27']?.notes || '' },
+          freigabe:     { freigegeben: old.stepData?.['37_41']?.released ?? null, notiz: old.stepData?.['37_41']?.notes || '' },
+        },
+        _synced: true,
+        createdAt: old.createdAt || new Date().toISOString(),
+      });
+      imported++;
+    });
+    setRunden(existing);
+    toast(`${imported} Runden importiert \u2713`);
+    renderRunden();
+  } catch (err) {
+    toast('Import fehlgeschlagen: ' + err.message);
+    console.error(err);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SAISONKALENDER & AUFGABEN
+// ═══════════════════════════════════════════════════════════════
+
+const SAISON_AUFGABEN = [
+  { monat: 1,  aufgabe: 'Oxals\u00e4ure-Behandlung (brutfrei)', kategorie: 'Behandlung' },
+  { monat: 2,  aufgabe: 'Futtervorrat pr\u00fcfen',              kategorie: 'Kontrolle'  },
+  { monat: 3,  aufgabe: 'Erste Durchsicht',                       kategorie: 'Kontrolle'  },
+  { monat: 4,  aufgabe: 'Schwarmkontrolle beginnen',              kategorie: 'Schwarm'    },
+  { monat: 5,  aufgabe: 'Schleudersaison Fr\u00fchtracht',       kategorie: 'Ernte'      },
+  { monat: 6,  aufgabe: 'Schleudersaison Fr\u00fchtracht',       kategorie: 'Ernte'      },
+  { monat: 7,  aufgabe: 'Varroabehandlung vorbereiten',           kategorie: 'Behandlung' },
+  { monat: 8,  aufgabe: 'Ameisens\u00e4ure-Behandlung',          kategorie: 'Behandlung' },
+  { monat: 9,  aufgabe: 'Einwinterungsfutter',                    kategorie: 'Futter'     },
+  { monat: 10, aufgabe: 'Varroakontrolle Wintervolk',             kategorie: 'Kontrolle'  },
+  { monat: 12, aufgabe: 'Oxals\u00e4ure planen',                kategorie: 'Behandlung' },
+];
+
+const KAT_CSS = {
+  'Behandlung': 'kat-Behandlung',
+  'Kontrolle':  'kat-Kontrolle',
+  'Schwarm':    'kat-Schwarm',
+  'Ernte':      'kat-Ernte',
+  'Futter':     'kat-Futter',
+  'Sonstige':   'kat-Sonstige',
+};
+const MONATSNAMEN = ['Jan','Feb','M\u00e4r','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+
+let kalenderFilter = 'alle';
+
+function getAufgaben() { return getData(LS.aufgaben); }
+function setAufgaben(arr) { setData(LS.aufgaben, arr); }
+
+function initSaisonAufgaben() {
+  const all = getAufgaben();
+  const existIds = new Set(all.map(a => a.id));
+  let changed = false;
+  SAISON_AUFGABEN.forEach((sa, i) => {
+    const id = `saison_${sa.monat}_${i}`;
+    if (!existIds.has(id)) {
+      all.push({
+        id, typ: 'saison', monat: sa.monat,
+        titel: sa.aufgabe, kategorie: sa.kategorie,
+        volkId: null, prioritaet: 'normal',
+        erledigt: false, erledigtAm: null,
+        createdAt: new Date().toISOString(),
+      });
+      changed = true;
+    }
+  });
+  if (changed) setAufgaben(all);
+}
+
+function fillKalenderVoelkerSelect() {
+  const el = document.getElementById('ak-volk');
+  if (!el) return;
+  const voelker = getVoelker();
+  el.innerHTML = '<option value="">\u2014 alle V\u00f6lker \u2014</option>' +
+    voelker.map(v => `<option value="${v.id}">${esc(v.name)}</option>`).join('');
+  const datEl = document.getElementById('ak-datum');
+  if (datEl && !datEl.value) datEl.value = today();
+}
+
+function setKalFilter(f, el) {
+  kalenderFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderKalender();
+}
+
+function aufgabeMonat(a) {
+  if (a.typ === 'saison') return a.monat || 0;
+  if (a.datum) return parseInt(a.datum.split('-')[1]) || 0;
+  return 0;
+}
+
+function renderKalender() {
+  let all = getAufgaben();
+  const voelker = getVoelker();
+  if (kalenderFilter === 'offen') {
+    all = all.filter(a => !a.erledigt);
+  } else if (!isNaN(parseInt(kalenderFilter))) {
+    const m = parseInt(kalenderFilter);
+    all = all.filter(a => aufgabeMonat(a) === m);
+  }
+  all = [...all].sort((a, b) => {
+    if (a.erledigt !== b.erledigt) return a.erledigt ? 1 : -1;
+    const am = aufgabeMonat(a), bm = aufgabeMonat(b);
+    if (am !== bm) return am - bm;
+    if (a.datum && b.datum) return a.datum.localeCompare(b.datum);
+    return 0;
+  });
+  const el = document.getElementById('kalender-liste');
+  if (!el) return;
+  if (!all.length) {
+    el.innerHTML = '<div class="empty-state"><div class="ei">\uD83D\uDCC5</div><p>Keine Aufgaben f\u00fcr diesen Filter.</p></div>';
+    return;
+  }
+  el.innerHTML = all.map(a => {
+    const katCls = KAT_CSS[a.kategorie] || 'kat-Sonstige';
+    const datumLabel = a.typ === 'saison'
+      ? MONATSNAMEN[(a.monat || 1) - 1]
+      : fmtDate(a.datum);
+    const volk = a.volkId ? voelker.find(v => v.id === a.volkId) : null;
+    const volkLabel = volk ? ` \u00b7 ${esc(volk.name)}` : '';
+    const prioIcon = a.prioritaet === 'hoch' ? ' \u26a0\ufe0f' : '';
+    const erledigtInfo = a.erledigt && a.erledigtAm ? ` \u00b7 \u2713 ${fmtDate(a.erledigtAm)}` : '';
+    return `<div class="aufgabe-item${a.erledigt ? ' erledigt' : ''}">
+      <div class="aufgabe-check ${a.erledigt ? 'done' : ''}" onclick="toggleAufgabe('${a.id}')">${a.erledigt ? '\u2713' : ''}</div>
+      <div class="aufgabe-body">
+        <div class="aufgabe-titel">${esc(a.titel || '')}${prioIcon}</div>
+        <div class="aufgabe-sub">
+          <span class="kat-badge ${katCls}">${esc(a.kategorie)}</span>
+          <span>${datumLabel}${volkLabel}${erledigtInfo}</span>
+        </div>
+      </div>
+      ${a.typ === 'eigen' ? `<div class="aufgabe-del" onclick="deleteAufgabe('${a.id}')">\uD83D\uDDD1</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function saveEigeneAufgabe() {
+  const titel = document.getElementById('ak-titel')?.value.trim();
+  if (!titel) { toast('Bitte Titel eingeben'); return; }
+  const datum = document.getElementById('ak-datum')?.value;
+  if (!datum) { toast('Bitte Datum w\u00e4hlen'); return; }
+  const monat = parseInt(datum.split('-')[1]);
+  const aufgabe = {
+    id: 'auf_' + uuid().slice(0,8),
+    typ: 'eigen', titel, datum, monat,
+    kategorie: document.getElementById('ak-kat')?.value || 'Sonstige',
+    volkId: document.getElementById('ak-volk')?.value || null,
+    prioritaet: document.getElementById('ak-prio')?.value || 'normal',
+    erledigt: false, erledigtAm: null,
+    createdAt: new Date().toISOString(),
+  };
+  const all = getAufgaben();
+  all.push(aufgabe);
+  setAufgaben(all);
+  document.getElementById('ak-titel').value = '';
+  document.getElementById('ak-datum').value = today();
+  toast('Aufgabe gespeichert \u2713');
+  renderKalender();
+}
+
+function toggleAufgabe(id) {
+  const all = getAufgaben();
+  const a = all.find(x => x.id === id);
+  if (!a) return;
+  a.erledigt = !a.erledigt;
+  a.erledigtAm = a.erledigt ? today() : null;
+  setAufgaben(all);
+  renderKalender();
+  toast(a.erledigt ? 'Erledigt \u2713' : 'Wieder offen');
+}
+
+function deleteAufgabe(id) {
+  if (!confirm('Aufgabe l\u00f6schen?')) return;
+  setAufgaben(getAufgaben().filter(a => a.id !== id));
+  toast('Aufgabe gel\u00f6scht');
+  renderKalender();
+}
+
+// ── Push-Benachrichtigungen ──
+function checkNotifBanner() {
+  const el = document.getElementById('notif-banner');
+  if (!el) return;
+  if (!('Notification' in window)) { el.classList.add('off'); return; }
+  el.classList.toggle('off', Notification.permission !== 'default');
+}
+
+function enableNotifications() {
+  if (!('Notification' in window)) { toast('Benachrichtigungen nicht unterst\u00fctzt'); return; }
+  Notification.requestPermission().then(perm => {
+    if (perm === 'granted') {
+      toast('Benachrichtigungen aktiviert \u2713');
+      checkNotifBanner();
+      checkFaelligeAufgaben();
+    } else {
+      toast('Benachrichtigungen wurden abgelehnt');
+      checkNotifBanner();
+    }
+  });
+}
+
+function checkFaelligeAufgaben() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const now = new Date();
+  const nowMonth = now.getMonth() + 1;
+  const todayStr = now.toISOString().split('T')[0];
+  const in3 = new Date(now); in3.setDate(in3.getDate() + 3);
+  const in3Str = in3.toISOString().split('T')[0];
+  const all = getAufgaben();
+  const faellig = all.filter(a => {
+    if (a.erledigt) return false;
+    if (a.typ === 'saison') return a.monat === nowMonth;
+    if (a.typ === 'eigen' && a.datum) return a.datum >= todayStr && a.datum <= in3Str;
+    return false;
+  });
+  faellig.slice(0, 3).forEach(a => {
+    try { new Notification('\uD83D\uDC1D ImkereiApp', { body: a.titel || '', tag: a.id }); } catch {}
+  });
+  if (faellig.length > 0) toast(`${faellig.length} f\u00e4llige Aufgabe${faellig.length>1?'n':''} \u23f0`);
+}
+
+// INIT
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
+
+window.addEventListener("online", () => syncIfOnline());
+
+renderSetupSection();
+renderVoelker();
+updateSyncBadge();
+// F\u00e4llige Aufgaben beim App-Start pr\u00fcfen (heute + n\u00e4chste 3 Tage)
+setTimeout(() => checkFaelligeAufgaben(), 2000);
+</script>
+</body>
+</html>
