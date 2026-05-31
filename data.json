@@ -28,6 +28,20 @@
   "aufgaben": [],
   "kosten": [],
   "buchhaltung": [],
-  "koeniginnen": [],
-  "lastSync": "2026-05-31T05:24:19.430Z"
+  "koeniginnen": [
+    {
+      "id": "qr_d38ab4de",
+      "name": "Runde 1",
+      "methode": "Brutschrank",
+      "umlarvDatum": "2026-05-31",
+      "zuchtmutter": {
+        "volkId": null,
+        "jahrgang": 2026
+      },
+      "schrittDaten": {},
+      "_synced": false,
+      "createdAt": "2026-05-31T05:26:10.109Z"
+    }
+  ],
+  "lastSync": "2026-05-31T05:26:10.111Z"
 }
