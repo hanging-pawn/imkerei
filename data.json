@@ -43,18 +43,18 @@
       "createdAt": "2026-05-31T05:26:10.109Z"
     },
     {
-      "id": "qr_3ea40722",
+      "id": "qr_1979a0d3",
       "name": "Runde 2",
-      "methode": "Brutschrank",
-      "umlarvDatum": "2026-05-04",
+      "methode": null,
+      "umlarvDatum": "2026-06-04",
       "zuchtmutter": {
         "volkId": null,
         "jahrgang": 2026
       },
       "schrittDaten": {},
       "_synced": false,
-      "createdAt": "2026-05-31T05:27:09.288Z"
+      "createdAt": "2026-05-31T05:27:33.638Z"
     }
   ],
-  "lastSync": "2026-05-31T05:27:09.289Z"
+  "lastSync": "2026-05-31T05:27:33.639Z"
 }
