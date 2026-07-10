@@ -49,7 +49,17 @@
       "beschreibung": "Rähmchen, wachs, rührer",
       "betrag": 132,
       "notiz": "Stadler, sulgen"
+    },
+    {
+      "id": "7970b2a5-35c7-47d1-954e-85b42d2d11e8",
+      "type": "aus",
+      "datum": "2026-07-10",
+      "ts": 1783680042667,
+      "kategorie": "Ausrüstung",
+      "beschreibung": "Ablegereuten, sirup",
+      "betrag": 132,
+      "notiz": "Stadler, sulgen"
     }
   ],
-  "lastUpdated": "2026-07-10T09:11:26.662Z"
+  "lastUpdated": "2026-07-10T10:40:43.552Z"
 }
