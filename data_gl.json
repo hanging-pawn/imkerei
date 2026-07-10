@@ -39,7 +39,17 @@
       "beschreibung": "Material",
       "betrag": 71.5,
       "notiz": "Frei"
+    },
+    {
+      "id": "b04d39db-a25c-4254-9886-2c49e6042902",
+      "type": "aus",
+      "datum": "2026-07-10",
+      "ts": 1783674686089,
+      "kategorie": "Ausrüstung",
+      "beschreibung": "Rähmchen, wachs, rührer",
+      "betrag": 132,
+      "notiz": "Stadler, sulgen"
     }
   ],
-  "lastUpdated": "2026-05-16T05:07:10.000Z"
+  "lastUpdated": "2026-07-10T09:11:26.662Z"
 }
