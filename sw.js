@@ -1,4 +1,4 @@
-const CACHE = 'imkerei-v4';
+const CACHE = 'imkerei-v5';
 const FILES = ['./app.html', './manifest.json'];
 
 self.addEventListener('install', e => {
