@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Login-Spike">
+<meta name="theme-color" content="#1E293B">
+<title>Imkerei Login-Spike</title>
+<!-- IMKER-22: Spike, keine Produktseite. Eigenes Manifest, damit sie getrennt von app.html
+     auf den Home-Bildschirm gelegt werden kann. Kein Service Worker. -->
+<link rel="manifest" href="spike-manifest.json">
+<style>
+  :root { --bg:#1E293B; --karte:#273449; --text:#E2E8F0; --leise:#94A3B8; --ok:#4ADE80; --err:#F87171; --akzent:#FBBF24; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+         background:var(--bg); color:var(--text); font:15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  h1 { font-size:20px; margin:0 0 2px; }
+  .sub { color:var(--leise); margin:0 0 14px; font-size:13px; }
+  section { background:var(--karte); border-radius:10px; padding:12px; margin-bottom:12px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--leise); margin:0 0 8px; }
+  dl { display:grid; grid-template-columns:auto 1fr; gap:4px 10px; margin:0; }
+  dt { color:var(--leise); }
+  dd { margin:0; word-break:break-word; }
+  .knoepfe { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  button { font:inherit; padding:12px 8px; border:0; border-radius:8px; background:#3B4D6B; color:var(--text); }
+  button.haupt { background:var(--akzent); color:#1E293B; font-weight:600; }
+  button:disabled { opacity:.4; }
+  pre { margin:0; white-space:pre-wrap; word-break:break-word; font:12px/1.35 ui-monospace, Menlo, monospace; }
+  #fehler pre { color:var(--err); }
+  #fehler.leer pre { color:var(--leise); }
+  .ok { color:var(--ok); } .err { color:var(--err); }
+  #protokoll { max-height:45vh; overflow:auto; }
+  .zeile2 { display:flex; gap:8px; margin-top:8px; }
+  .zeile2 button { flex:1; padding:8px; font-size:13px; }
+</style>
+</head>
+<body>
+<h1>Login-Spike</h1>
+<p class="sub">IMKER-22 · Microsoft-Login (MSAL, Redirect) und OneDrive-App-Ordner</p>
+
+<section>
+  <h2>Status</h2>
+  <dl>
+    <dt>Konto</dt><dd id="konto">–</dd>
+    <dt>Token gültig bis</dt><dd id="ablauf">–</dd>
+    <dt>Stille Erneuerung</dt><dd id="still">–</dd>
+    <dt>Anzeige</dt><dd id="anzeige">–</dd>
+    <dt>Token-Cache</dt><dd id="cache">–</dd>
+    <dt>Redirect-URI</dt><dd id="redirect">–</dd>
+    <dt>MSAL</dt><dd id="version">–</dd>
+  </dl>
+</section>
+
+<section>
+  <h2>Aktionen</h2>
+  <div class="knoepfe">
+    <button id="btnLogin" class="haupt">Anmelden</button>
+    <button id="btnLogout">Abmelden</button>
+    <button id="btnSchreiben">test.json schreiben</button>
+    <button id="btnLesen">test.json lesen</button>
+    <button id="btnStill">Token still erneuern</button>
+    <button id="btnNeuLaden">Seite neu laden</button>
+  </div>
+</section>
+
+<section id="fehler" class="leer">
+  <h2>Letzter Fehler (wörtlich)</h2>
+  <pre id="fehlerText">keiner</pre>
+</section>
+
+<section>
+  <h2>Protokoll</h2>
+  <pre id="protokoll"></pre>
+  <div class="zeile2">
+    <button id="btnKopieren">Bericht kopieren</button>
+    <button id="btnLeeren">Protokoll leeren</button>
+  </div>
+</section>
+
+<!-- Gleiche Version wie Libarius (index.html), hier mit SRI. Hashes: sha384 der Dateien auf
+     cdn.jsdelivr.net, ermittelt 2026-10-28. -->
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@5.20.0/lib/msal-browser.min.js"
+        integrity="sha384-BKJ+kjoakw9D0sBwXPGRgwzJ2kKnBmmfwmmqJzegTw5TPuxu+6VTbE/y3pf/833/"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@5.20.0/lib/redirect-bridge/msal-redirect-bridge.min.js"
+        integrity="sha384-Nf0V/8kJxJMYxiTWNEaGKk/HSrl+HY+4I3Z7MBd7Kw/F+wo1n9rH9s//FjfmYnIj"
+        crossorigin="anonymous"></script>
+<script>
+"use strict";
+
+// Azure-App-Registrierung «Imkerei» (IMKER-19). Client-ID ist öffentlich, kein Geheimnis.
+const CLIENT_ID = "d5a63e28-b894-484e-8e80-fda4e5a64f74";
+const SCOPES    = ["Files.ReadWrite.AppFolder", "User.Read"];
+const TEST_URL  = "https://graph.microsoft.com/v1.0/me/drive/special/approot:/test.json:/content";
+
+// Registriert sind die Pages-Seite selbst und lokal nur http://localhost:8080/ (Wurzel) —
+// spike_server.py liefert diese Seite darum unter «/» aus.
+const LOKAL = location.hostname === "localhost";
+const REDIRECT_URI = LOKAL ? location.origin + "/" : location.origin + location.pathname;
+
+// Protokoll und letzte stille Erneuerung überleben den Redirect (localStorage), sonst sähe
+// man nach der Rückkehr von Microsoft nicht mehr, was davor passiert ist.
+const LOG_KEY = "imkerei-spike.protokoll";
+const STILL_KEY = "imkerei-spike.still";
+const $ = id => document.getElementById(id);
+let app = null;
+
+function speicherLesen(key, fallback){
+  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
+}
+function speicherSchreiben(key, wert){
+  try { localStorage.setItem(key, JSON.stringify(wert)); } catch { /* privater Modus: nur Anzeige */ }
+}
+
+function zeit(d = new Date()){
+  return d.toLocaleString("de-CH", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit" });
+}
+
+function log(text){
+  const eintraege = speicherLesen(LOG_KEY, []);
+  eintraege.push(zeit() + "  " + text);
+  speicherSchreiben(LOG_KEY, eintraege.slice(-120));
+  zeigeProtokoll(eintraege.slice(-120));
+}
+function zeigeProtokoll(eintraege = speicherLesen(LOG_KEY, [])){
+  $("protokoll").textContent = eintraege.join("\n") || "(leer)";
+  $("protokoll").scrollTop = $("protokoll").scrollHeight;
+}
+
+// Fehler unverändert ausgeben: alle Felder, die MSAL-, Browser- oder Graph-Fehler tragen.
+function fehlerText(e){
+  if (e == null) return String(e);
+  if (typeof e !== "object") return String(e);
+  const teile = [String(e)];
+  for (const feld of ["name", "errorCode", "subError", "errorMessage", "message", "correlationId", "status", "body"]) {
+    if (e[feld] !== undefined && e[feld] !== "" && !teile[0].includes(String(e[feld])))
+      teile.push(feld + ": " + (typeof e[feld] === "object" ? JSON.stringify(e[feld]) : e[feld]));
+  }
+  return teile.join("\n");
+}
+function fehler(wo, e){
+  const text = wo + "\n" + fehlerText(e);
+  $("fehler").classList.remove("leer");
+  $("fehlerText").textContent = zeit() + "  " + text;
+  log("FEHLER " + text.replace(/\n/g, " | "));
+}
+
+function istStandalone(){
+  return navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+}
+
+function msalEintraege(storage){
+  try {
+    let n = 0;
+    for (let i = 0; i < storage.length; i++) if (/msal|login\.windows|microsoftonline/i.test(storage.key(i))) n++;
+    return n;
+  } catch { return "nicht lesbar"; }
+}
+
+function zeigeStatus(){
+  const konto = app && app.getActiveAccount();
+  $("konto").textContent = konto ? (konto.name ? konto.name + " · " : "") + konto.username : "nicht angemeldet";
+  const s = speicherLesen(STILL_KEY, null);
+  $("ablauf").textContent = s && s.bis ? zeit(new Date(s.bis)) : "–";
+  $("still").innerHTML = "";
+  if (s) {
+    const span = document.createElement("span");
+    span.className = s.ok ? "ok" : "err";
+    span.textContent = zeit(new Date(s.zeit)) + " · " + (s.ok ? "ok, " + s.quelle : "Fehler: " + s.fehler);
+    $("still").appendChild(span);
+  } else $("still").textContent = "noch keine";
+  $("anzeige").textContent = istStandalone() ? "Home-Bildschirm (standalone)" : "Browser-Tab";
+  $("cache").textContent = "localStorage · " + msalEintraege(localStorage) + " MSAL-Einträge (sessionStorage: " + msalEintraege(sessionStorage) + ")";
+  $("redirect").textContent = REDIRECT_URI;
+  $("version").textContent = window.msal ? "msal-browser " + msal.version : "nicht geladen";
+  $("btnLogin").disabled = !app;
+  for (const id of ["btnLogout", "btnSchreiben", "btnLesen", "btnStill"]) $(id).disabled = !konto;
+}
+
+// Hinterlegt Antwort-Parameter von Microsoft in Hash oder Query?
+function authAntwortInUrl(){
+  const hat = s => s.length > 1 && /(^|&)(code|error|state)=/.test(s.slice(1));
+  return hat(location.hash) || hat(location.search);
+}
+function urlBereinigen(){
+  if (authAntwortInUrl()) history.replaceState(null, "", location.pathname);
+}
+
+async function tokenStill(forceRefresh){
+  const konto = app.getActiveAccount();
+  try {
+    const r = await app.acquireTokenSilent({ scopes: SCOPES, account: konto, forceRefresh });
+    speicherSchreiben(STILL_KEY, { zeit: Date.now(), ok: true, quelle: r.fromCache ? "aus Cache" : "neu vom Server",
+                                   bis: r.expiresOn ? new Date(r.expiresOn).getTime() : null });
+    log("Token still " + (forceRefresh ? "erneuert" : "geholt") + ": " + (r.fromCache ? "aus Cache" : "neu vom Server")
+        + ", gültig bis " + (r.expiresOn ? zeit(new Date(r.expiresOn)) : "?") + ", Scopes " + r.scopes.join(" "));
+    return r.accessToken;
+  } catch (e) {
+    speicherSchreiben(STILL_KEY, { zeit: Date.now(), ok: false, fehler: e.errorCode || e.name || String(e) });
+    fehler("acquireTokenSilent" + (forceRefresh ? " (forceRefresh)" : ""), e);
+    if (e instanceof msal.InteractionRequiredAuthError) log("Hinweis: Interaktion nötig – «Anmelden» tippen.");
+    return null;
+  } finally { zeigeStatus(); }
+}
+
+async function graph(methode, body){
+  const token = await tokenStill(false);
+  if (!token) return;
+  const res = await fetch(TEST_URL, {
+    method: methode,
+    headers: Object.assign({ Authorization: "Bearer " + token }, body ? { "Content-Type": "application/json" } : {}),
+    body
+  });
+  const text = await res.text();
+  if (!res.ok) { fehler("Graph " + methode + " test.json", { status: res.status + " " + res.statusText, body: text }); return; }
+  return text;
+}
+
+async function schreiben(){
+  // Nur Testwerte, nie ein Token (NF-021).
+  const inhalt = JSON.stringify({ geschrieben: new Date().toISOString(), von: "spike-login.html",
+                                  anzeige: istStandalone() ? "standalone" : "browser", geraet: navigator.userAgent }, null, 2);
+  log("Schreibe test.json …");
+  const antwort = await graph("PUT", inhalt);
+  if (antwort === undefined) return;
+  const item = JSON.parse(antwort);
+  log("test.json geschrieben: " + item.name + ", " + item.size + " Bytes, Ordner " + (item.parentReference && item.parentReference.path));
+}
+
+async function lesen(){
+  log("Lese test.json …");
+  const antwort = await graph("GET");
+  if (antwort === undefined) return;
+  log("test.json gelesen:\n" + antwort);
+}
+
+async function start(){
+  zeigeProtokoll();
+  log("Seite geladen · " + (istStandalone() ? "standalone" : "Browser-Tab") + " · " + location.href.split(/[?#]/)[0]);
+  if (!window.msal) { fehler("Start", "msal-browser nicht geladen (CDN gesperrt oder SRI-Hash falsch?)"); zeigeStatus(); return; }
+
+  // Rückkehr von Microsoft: die Redirect-Bridge legt die Antwort in den sessionStorage und lädt
+  // die Ausgangsseite neu, wo handleRedirectPromise() sie aufnimmt (msal-browser 5.20.0,
+  // broadcastResponseToMainFrame). Wirft sie, versucht handleRedirectPromise() die URL direkt.
+  if (authAntwortInUrl() && window.msalRedirectBridge) {
+    log("Auth-Antwort in der URL – Redirect-Bridge übernimmt");
+    try {
+      await Promise.race([
+        msalRedirectBridge.broadcastResponseToMainFrame(),
+        new Promise(ok => setTimeout(ok, 5000))   // Seite navigiert normalerweise vorher weg
+      ]);
+      log("Redirect-Bridge: keine Navigation innert 5 s – weiter ohne Bridge");
+    } catch (e) { fehler("Redirect-Bridge", e); }
+  }
+
+  try {
+    app = new msal.PublicClientApplication({
+      auth: { clientId: CLIENT_ID, authority: "https://login.microsoftonline.com/common",
+              redirectUri: REDIRECT_URI, postLogoutRedirectUri: REDIRECT_URI },
+      cache: { cacheLocation: "localStorage" },
+      system: { loggerOptions: { logLevel: msal.LogLevel.Warning, piiLoggingEnabled: false,
+                                 loggerCallback: (stufe, text) => log("MSAL[" + stufe + "] " + text) } }
+    });
+    await app.initialize();
+  } catch (e) { fehler("MSAL initialize", e); app = null; zeigeStatus(); return; }
+
+  try {
+    const r = await app.handleRedirectPromise();
+    if (r) {
+      app.setActiveAccount(r.account);
+      speicherSchreiben(STILL_KEY, { zeit: Date.now(), ok: true, quelle: "Login-Redirect",
+                                     bis: r.expiresOn ? new Date(r.expiresOn).getTime() : null });
+      log("Login ok: " + r.account.username + ", Token bis " + (r.expiresOn ? zeit(new Date(r.expiresOn)) : "?") + ", Scopes " + r.scopes.join(" "));
+    } else log("handleRedirectPromise: keine Antwort");
+  } catch (e) {
+    fehler("handleRedirectPromise", e);
+  }
+  urlBereinigen();
+
+  if (!app.getActiveAccount()) {
+    const konten = app.getAllAccounts();
+    if (konten.length) { app.setActiveAccount(konten[0]); log("Konto aus Cache: " + konten[0].username); }
+  }
+  zeigeStatus();
+  if (app.getActiveAccount()) await tokenStill(false);
+}
+
+$("btnLogin").onclick = async () => {
+  urlBereinigen();
+  log("loginRedirect …");
+  try { await app.loginRedirect({ scopes: SCOPES, prompt: "select_account" }); }
+  catch (e) { fehler("loginRedirect", e); }
+};
+$("btnLogout").onclick = async () => {
+  log("logoutRedirect …");
+  try { await app.logoutRedirect({ account: app.getActiveAccount() }); }
+  catch (e) { fehler("logoutRedirect", e); }
+};
+$("btnSchreiben").onclick = () => schreiben().catch(e => fehler("test.json schreiben", e));
+$("btnLesen").onclick     = () => lesen().catch(e => fehler("test.json lesen", e));
+$("btnStill").onclick     = () => tokenStill(true);
+$("btnNeuLaden").onclick  = () => location.reload();
+$("btnLeeren").onclick    = () => { speicherSchreiben(LOG_KEY, []); zeigeProtokoll(); };
+$("btnKopieren").onclick  = async () => {
+  const bericht = ["Login-Spike-Bericht " + new Date().toISOString(), navigator.userAgent,
+    ...[...document.querySelectorAll("dl dt")].map(dt => dt.textContent + ": " + dt.nextElementSibling.textContent),
+    "Letzter Fehler: " + $("fehlerText").textContent, "", $("protokoll").textContent].join("\n");
+  try { await navigator.clipboard.writeText(bericht); log("Bericht kopiert (" + bericht.length + " Zeichen)"); }
+  catch (e) { fehler("Bericht kopieren", e); }
+};
+
+start().catch(e => fehler("Start", e));
+</script>
+</body>
+</html>
