@@ -1,0 +1,11 @@
+{
+  "name": "Imkerei Login-Spike",
+  "short_name": "Login-Spike",
+  "description": "IMKER-22: Microsoft-Login (MSAL-Redirect) im Home-Bildschirm testen",
+  "start_url": "./spike-login.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1E293B",
+  "theme_color": "#1E293B",
+  "orientation": "portrait"
+}
