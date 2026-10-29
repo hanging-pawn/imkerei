@@ -132,11 +132,11 @@ function zeigeProtokoll(eintraege = speicherLesen(LOG_KEY, [])){
 
 // Fehler unverändert ausgeben: alle Felder, die MSAL-, Browser- oder Graph-Fehler tragen.
 function fehlerText(e){
-  if (e == null) return String(e);
-  if (typeof e !== "object") return String(e);
-  const teile = [String(e)];
+  if (e == null || typeof e !== "object") return String(e);
+  const kopf = String(e);
+  const teile = kopf === "[object Object]" ? [] : [kopf];
   for (const feld of ["name", "errorCode", "subError", "errorMessage", "message", "correlationId", "status", "body"]) {
-    if (e[feld] !== undefined && e[feld] !== "" && !teile[0].includes(String(e[feld])))
+    if (e[feld] !== undefined && e[feld] !== "" && !kopf.includes(String(e[feld])))
       teile.push(feld + ": " + (typeof e[feld] === "object" ? JSON.stringify(e[feld]) : e[feld]));
   }
   return teile.join("\n");
@@ -209,12 +209,15 @@ async function tokenStill(forceRefresh){
 async function graph(methode, body){
   const token = await tokenStill(false);
   if (!token) return;
+  const t0 = Date.now();
   const res = await fetch(TEST_URL, {
     method: methode,
     headers: Object.assign({ Authorization: "Bearer " + token }, body ? { "Content-Type": "application/json" } : {}),
     body
   });
   const text = await res.text();
+  // Desktop-Safari 29.10.: erstes PUT meldete 404 itemNotFound, die Datei war trotzdem da.
+  log("Graph " + methode + " test.json → HTTP " + res.status + " nach " + (Date.now() - t0) + " ms");
   if (!res.ok) { fehler("Graph " + methode + " test.json", { status: res.status + " " + res.statusText, body: text }); return; }
   return text;
 }
